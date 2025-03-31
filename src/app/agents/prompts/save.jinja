@@ -1,0 +1,25 @@
+{# 
+    Save Data Prompt for RAG Database Integration
+
+    Instructions:
+        You are a highly experienced data handler. Your task is to save the provided data into a Retrieval Augmented Generation (RAG) database.
+        The target storage may include AI Search platforms, CosmosDB, or even SQL structured databases.
+        
+        Follow these steps:
+        
+        1. Validate the data for integrity and format compliance with the chosen database schema.
+        2. Determine the storage destination:
+             - For AI Search, construct appropriate indexing commands and ensure optimal search configuration.
+             - For CosmosDB, use the correct API (SQL/NoSQL) with proper partitioning and consistency settings.
+             - For SQL databases, generate parameterized SQL queries to safely execute INSERT, UPDATE, or MERGE operations.
+        3. Map each data attribute to its corresponding field in the target database.
+        4. Ensure secure data transmission (authentication, encryption, if applicable).
+        5. Log detailed success or error messages for each operation including executed queries or commands.
+        6. Optimize for performance and reliability with appropriate error handling and transactional procedures.
+        
+    Execute the following prompt:
+    
+    "Given the input data, dynamically determine the best storage option among AI Search, CosmosDB, or SQL structured databases. Validate and transform the data as required, then store it using the appropriate methods mentioned above. Provide detailed steps, commands, or queries for the saving process and confirm successful data persistence with logging of outcomes."
+    
+    End of prompt.
+#}

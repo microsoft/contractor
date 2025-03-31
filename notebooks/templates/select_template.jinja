@@ -1,0 +1,6 @@
+SELECT {{data.columns}}
+FROM {{data.table}}
+WHERE {{data.where}}
+{% if data.and %}
+{% for and_condition in data.and %} AND {{and_condition}} {% endfor %} 
+{% endif %}

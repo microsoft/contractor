@@ -1,33 +1,52 @@
-# Project
+# Project Name
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+A multi-modal, agentic RAG implementation with Semantic Kernel that manages multi-modal information for chat applications.
 
-As the maintainer of this project, please make a few updates:
+## Features
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+This project framework provides the following features:
 
-## Contributing
+* Agentic implementation using Semantic Kernel
+* Plugins connecting AI Search for indexing and retrieving multi-modal information
+* ...
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+## Getting Started
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+### Prerequisites
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+- Windows 10 or later / Ubuntu 23.04 or later
+- Check [pyproject.toml](src/pyproject.toml) for Python dependencies
+- Check [pyproject.toml](src/pyproject.toml) for TypeScript dependencies
 
-## Trademarks
+### Installation
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
+- Install [Python](https://www.python.org/downloads/)
+- Install [NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) and [YARN](https://classic.yarnpkg.com/lang/en/docs/install/#windows-stable)
+- run [the configuration file for your system](.configure/conf-env.ps1)
+
+### Quickstart
+(Add steps to get up and running quickly)
+
+1. git clone [repository clone url]
+2. cd [repository name]
+3. ...
+
+
+## Demo
+
+A demo app is included to show how to use the project.
+
+To run the demo, follow these steps:
+
+(Add steps to start up the demo)
+
+1.
+2.
+3.
+
+## Resources
+
+You'll find more information on this project based on the proper documentation on each architectural component
+
+- Read the [FastAPI App Documentation](src/README.md)
+- Run the [tests](src/tests/)
