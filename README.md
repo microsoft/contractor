@@ -1,4 +1,4 @@
-# Project Name
+# The Contractor
 
 A multi-modal, agentic RAG implementation with Semantic Kernel that manages multi-modal information for chat applications.
 
@@ -8,7 +8,6 @@ This project framework provides the following features:
 
 * Agentic implementation using Semantic Kernel
 * Plugins connecting AI Search for indexing and retrieving multi-modal information
-* ...
 
 ## Getting Started
 
@@ -16,12 +15,10 @@ This project framework provides the following features:
 
 - Windows 10 or later / Ubuntu 23.04 or later
 - Check [pyproject.toml](src/pyproject.toml) for Python dependencies
-- Check [pyproject.toml](src/pyproject.toml) for TypeScript dependencies
 
 ### Installation
 
 - Install [Python](https://www.python.org/downloads/)
-- Install [NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) and [YARN](https://classic.yarnpkg.com/lang/en/docs/install/#windows-stable)
 - run [the configuration file for your system](.configure/conf-env.ps1)
 
 ### Quickstart

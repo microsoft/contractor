@@ -64,8 +64,6 @@ from .operators import Mediator
 
 from app.plugins import AUDIO_PLUGINS, IMAGE_PLUGINS, TEXT_PLUGINS, VIDEO_PLUGINS
 
-from app.plugins import AUDIO_PLUGINS, IMAGE_PLUGINS, TEXT_PLUGINS, VIDEO_PLUGINS
-
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ENV_FILE = os.path.join(BASE_DIR, ".env")
@@ -78,7 +76,6 @@ AZURE_MODEL_KEY = os.getenv("AZURE_MODEL_KEY", "")
 AZURE_MODEL_URL = os.getenv("AZURE_MODEL_URL", "")
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "prompts")
 JINJA_ENV = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIR))
-
 
 
 AVAILABLE_MODELS: list[AzureChatCompletion] = [
