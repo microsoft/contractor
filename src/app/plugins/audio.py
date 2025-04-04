@@ -81,10 +81,6 @@ class AudioProcessor:
         name="process_transcription",
         description="Transcribes an audio file to text using Azure Speech services"
     )
-    @kernel_function(
-        name="process_transcription",
-        description="Transcribes an audio file to text using Azure Speech services"
-    )
     def process_transcription(self, audio_file: str) -> str:
         """
         Transcreve o arquivo de áudio fornecido para texto.
@@ -111,10 +107,7 @@ class AudioProcessor:
             logger.error(f"Erro durante a transcrição de áudio: {str(e)}")
             return f"Erro durante a transcrição: {str(e)}"
 
-    @kernel_function(
-        name="perform_diarization",
-        description="Identifies different speakers in an audio file and returns their transcribed speech"
-    )
+
     @kernel_function(
         name="perform_diarization",
         description="Identifies different speakers in an audio file and returns their transcribed speech"
@@ -314,10 +307,6 @@ class AudioAnswer:
         name="process_audio",
         description="Processes real-time audio streams for transcription"
     )
-    @kernel_function(
-        name="process_audio",
-        description="Processes real-time audio streams for transcription"
-    )
     def process_audio(self, audio_stream) -> str:
         """
         Process an audio stream in real time and return the concatenated transcription.
@@ -392,10 +381,6 @@ class AudioStreamer:
         name="stream_audio",
         description="Streams audio data for transcription and diarization"
     )
-    @kernel_function(
-        name="stream_audio",
-        description="Streams audio data for transcription and diarization"
-    )
     def stream_audio(self, audio_input_stream, duration: int = 10) -> Dict[str, Any]:
         """
         Stream the given audio input for a specified duration and perform both transcription and diarization.
@@ -453,10 +438,6 @@ class AudioStreamer:
                 'diarization': []
             }
 
-    @kernel_function(
-        name="save_processed_content",
-        description="Saves processed transcription and diarization content to the specified backend"
-    )
     @kernel_function(
         name="save_processed_content",
         description="Saves processed transcription and diarization content to the specified backend"

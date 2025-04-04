@@ -222,5 +222,5 @@ class StatisticalAnalysisPlugin:
             final_data[cat] = df_stats.T.stack()
         
         combined_df = pd.DataFrame(final_data).T
-        combined_df.columns = pd.MultiIndex.from_tuples(combined_df.columns)
+        combined_df.columns = pd.MultiIndex.from_tuples(combined_df.columns)  # type: ignore
         return combined_df

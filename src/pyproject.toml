@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "Augumented RAG"
+name = "Contractor"
 version = "0.1.0-alpha"
 description = ""
 authors = ["Ricardo Cataldi <rcataldi@microsoft.com>"]

@@ -71,7 +71,6 @@ class ImageProcessor:
         )
 
     @kernel_function(name="IngestImage", description="Ingests an image from a URL and converts it to bytes")
-    @kernel_function(name="IngestImage", description="Ingests an image from a URL and converts it to bytes")
     async def ingest_image(self, image_url: str) -> bytes:
         """
         Ingest an image from a URL and convert it to bytes.
@@ -93,7 +92,6 @@ class ImageProcessor:
             logger.error(f"Error ingesting image from URL: {str(e)}")
             raise Exception(f"Failed to ingest image: {str(e)}")
 
-    @kernel_function(name="LoadImages", description="Loads multiple images from URLs or byte arrays")
     @kernel_function(name="LoadImages", description="Loads multiple images from URLs or byte arrays")
     async def load_images(self, image_sources: List[Union[str, bytes]]) -> List[bytes]:
         """
@@ -118,7 +116,6 @@ class ImageProcessor:
                 images.append(None)
         return images
 
-    @kernel_function(name="SaveImageSet", description="Saves a set of images with metadata to the database")
     @kernel_function(name="SaveImageSet", description="Saves a set of images with metadata to the database")
     async def save_image_set(self, images: List[bytes], metadata: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -169,7 +166,6 @@ class ImageProcessor:
             raise Exception(f"Failed to save image set: {str(e)}")
 
     @kernel_function(name="AddCaptions", description="Uses Azure AI Vision to add captions to images")
-    @kernel_function(name="AddCaptions", description="Uses Azure AI Vision to add captions to images")
     async def add_captions(self, images: List[bytes]) -> List[Dict[str, str]]:
         """
         Uses Azure AI Vision SDK to add captions to images.
@@ -207,7 +203,6 @@ class ImageProcessor:
                 
         return captions
 
-    @kernel_function(name="ExtractTags", description="Extracts tags from images using Azure AI Vision")
     @kernel_function(name="ExtractTags", description="Extracts tags from images using Azure AI Vision")
     async def extract_tags(self, images: List[bytes]) -> List[Dict[str, Any]]:
         """
@@ -248,7 +243,6 @@ class ImageProcessor:
 
         return all_tags
 
-    @kernel_function(name="CropImages", description="Crops images to their region of interest")
     @kernel_function(name="CropImages", description="Crops images to their region of interest")
     async def crop_images(self, images: List[bytes]) -> List[bytes]:
         """
@@ -433,7 +427,6 @@ class ImageEmbedder:
             return [0.0] * 1024
 
     @kernel_function(name="CalculateSimilarity", description="Calculates cosine similarity between image embeddings")
-    @kernel_function(name="CalculateSimilarity", description="Calculates cosine similarity between image embeddings")
     def calculate_similarity(self, embeddings: List[List[float]]) -> List[List[float]]:
         """
         Calculates cosine similarity between a set of image embeddings.
@@ -477,7 +470,6 @@ class ImageAnswer:
             credential=AzureKeyCredential(AZURE_VISION_KEY)
         )
 
-    @kernel_function(name="ExtractText", description="Extracts text from images using OCR")
     @kernel_function(name="ExtractText", description="Extracts text from images using OCR")
     async def extract_text(self, image: bytes) -> Dict[str, Any]:
         """
@@ -542,7 +534,6 @@ class ImageAnswer:
             logger.error(f"Error extracting text: {str(e)}")
             return {"text": "", "regions": [], "error": str(e)}
 
-    @kernel_function(name="DetectObjects", description="Detects and identifies objects in images")
     @kernel_function(name="DetectObjects", description="Detects and identifies objects in images")
     async def detect_objects(self, image: bytes) -> Dict[str, Any]:
         """
