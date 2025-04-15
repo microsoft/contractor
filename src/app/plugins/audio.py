@@ -53,11 +53,10 @@ AZURE_AUDIO_EMBEDDINGS_URL = os.environ.get("AZURE_AUDIO_EMBEDDINGS_URL", "")
 EMBEDDINGS_MODEL = os.environ.get("EMBEDDINGS_MODEL", "text-embedding-3-large")
 
 
-
 class AudioProcessor:
     """
     Processa arquivos de áudio usando o Azure Speech SDK para transcrição e diarização.
-    
+
     Atributos:
         speech_config (speechsdk.SpeechConfig): Configuração do serviço de fala.
     """
@@ -194,7 +193,6 @@ class AudioEmbedder:
         Returns:
             tuple: A tuple containing the generated embedding (list) and the transcription (str).
         """
-        processor = AudioProcessor()
         processor = AudioProcessor()
         transcription = processor.process_transcription(audio_file)
         embedding = self._generate_embedding(transcription)

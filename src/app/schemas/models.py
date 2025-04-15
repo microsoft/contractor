@@ -32,7 +32,7 @@ class Agent(BaseModel):
         objective (Literal["image", "text", "audio", "video"]): The data type this agent specializes in.
     """
 
-    id: str = Field(..., description="Agent ID")
+    id: int = Field(..., description="Agent ID")
     name: str = Field(..., description="Agent Name")
     model_id: str = Field(..., description="Model ID")
     metaprompt: str = Field(..., description="Agent System Prompt")
@@ -64,16 +64,25 @@ class Assembly(BaseModel):
         roles (List[str]): The defined roles for agents within this assembly.
     """
 
-    id: str = Field(..., description="Agent Assembly ID")
+    id: int = Field(..., description="Agent Assembly ID")
     objective: str = Field(..., description="The Agent Assembly Object to operate on")
     agents: List[Agent] = Field(..., description="Agents Assemblies")
     roles: List[str] = Field(..., description="Agent Roles ID")
+    order: Optional[List[int]] = Field(default=None, description="Agent Order of Execution")
 
     @classmethod
     @field_validator("roles")
     def roles_must_not_exceed_length(cls, v):
         for role in v:
             if len(role) > 360:
+                raise ValueError("each role must have at most 360 characters")
+        return v
+
+    @classmethod
+    @field_validator("order")
+    def orders_must_contain_ids(cls, v):
+        for order in v:
+            if order not in [agent.id for agent in v.agents]:
                 raise ValueError("each role must have at most 360 characters")
         return v
 
