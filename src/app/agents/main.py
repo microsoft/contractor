@@ -118,7 +118,7 @@ class ToolerBase(ABC):
         :param grader: The Grader configuration data (including id, name, metaprompt, model_id).
         :param kernel: A shared Semantic Kernel instance configured with services.
         """
-        self._mediator: Optional[Observer] = None
+        self._observer: Optional[Observer] = None
         self.kernel = kernel
         self.tooler = tooler
         self.agent: ChatCompletionAgent
