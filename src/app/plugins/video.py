@@ -63,11 +63,11 @@ class VideoProcessor:
         speech_key (str): Azure Speech subscription key.
         speech_region (str): Azure Speech region.
     """
-    
+
     def __init__(self):
         """
         Initialize the VideoProcessor with Azure Vision and Speech credentials.
-        
+
         Args:
             vision_key (str): Azure Vision subscription key.
             vision_endpoint (str): Azure Vision endpoint.
@@ -95,7 +95,7 @@ class VideoProcessor:
             Dict[str, Any]: Processing results including frames, audio transcription, and metadata.
         """
         path, file_name = os.path.split(video_path) 
-        
+
         try:
             cap = cv2.VideoCapture(video_path)
             if not cap.isOpened():
@@ -120,11 +120,11 @@ class VideoProcessor:
                     
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame_image = Image.fromarray(frame_rgb)
-                
+
                 buffered = io.BytesIO()
                 frame_image.save(buffered, format="PNG")
                 frames.append(buffered.getvalue())
-                
+
                 frame_time = frame_idx / fps
                 frame_times.append(frame_time)
 
