@@ -118,7 +118,7 @@ class ToolerBase(ABC):
         :param grader: The Grader configuration data (including id, name, metaprompt, model_id).
         :param kernel: A shared Semantic Kernel instance configured with services.
         """
-        self._mediator: Optional[Observer] = None
+        self._observer: Optional[Observer] = None
         self.kernel = kernel
         self.tooler = tooler
         self.agent: ChatCompletionAgent
@@ -434,9 +434,8 @@ class ToolerOrchestrator:
         """
         answers = []
         chat = ChatHistory()
-        for index, toolers in {tooler.agent.id: tooler for tooler in self.toolers}.items():
-            result = await toolers.interact(prompt, chat)
-            answers.append({f"agent_{index}": result})
+        for index, tooler in enumerate(self.toolers):
+            result = await tooler.interact(prompt, chat)
         return answers
 
     async def _llm_processing(self, prompt: str) -> List:
