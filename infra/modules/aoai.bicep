@@ -1,43 +1,107 @@
+// aoai.bicep
+// Azure OpenAI / AI Services module
+
 targetScope = 'resourceGroup'
 
-@description('Location for the Azure OpenAI instance')
-param location string
+@description('Name of the Azure AI Services account')
+param aiServiceAccountName string
 
-@description('Name for the Azure OpenAI instance')
-param openAiAccountName string = 'contractor-openai'
+@description('Create or recover the account?')
+param deployAccount bool = true
 
-@description('Keyvault secret for the Log Analytics Workspace.')
-param keyVaultReference string
+@description('Set true to recover a soft-deleted account')
+param restore bool = false
 
-@description('Environment indicator to adjust address space accordingly')
-param environment string
+@description('Azure region')
+param location string = resourceGroup().location
 
-@description('Subscription Id for resource references')
-param subscriptionId string = subscription().subscriptionId
+@description('Pricing tier')
+@allowed([ 'S0' ])
+param sku string = 'S0'
 
-resource openAi 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
-  name: openAiAccountName
+@description('Custom sub-domain prefix (without suffix)')
+param customSubDomainName string
+
+@description('Resource ID of the subnet for private endpoint')
+param subnetId string
+
+@description('Model deployment name')
+param modelDeploymentName string
+
+@description('Model name (e.g. gpt-4)')
+param modelName string
+
+@description('Model version')
+param modelVersion string
+
+@description('Capacity units (tokens/min)')
+param capacity int = 8000
+
+@description('Tags to apply')
+param tags object = {}
+
+// Primary account resource: create or recover
+resource openAIService 'Microsoft.CognitiveServices/accounts@2024-10-01' = if (deployAccount) {
+  name: aiServiceAccountName
   location: location
-  identity: {
-    type: 'SystemAssigned'
-  }
-  sku: {
-    name: 'S0'
-  }
-  kind: 'OpenAI'
+  kind: 'AIServices'
+  identity: { type: 'SystemAssigned' }
+  sku: { name: sku }
   properties: {
-    apiProperties: {
-      subnet: {
-        // Updated to use the composite resource type.
-        id: resourceId(subscriptionId, resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', 'myVNet', 'data')
-      }
+    customSubDomainName: customSubDomainName
+    apiProperties: { subnet: { id: subnetId } }
+    restore: restore
+    publicNetworkAccess: 'Disabled'
+    networkAcls: {
+      defaultAction: 'Deny'
+      virtualNetworkRules: [ { id: subnetId, ignoreMissingVnetServiceEndpoint: false } ]
     }
   }
-  tags: {
-    project: 'Contractor'
-    environment: environment
-    keyVaultReference: keyVaultReference
-  }
+  tags: tags
 }
 
-output openAiAccountId string = openAi.id
+// Existing account reference: used when not deploying
+resource openAIExisting 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = if (!deployAccount) {
+  name: aiServiceAccountName
+}
+
+// Model deployment for newly created account
+resource modelDeploymentForAccount 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = if (deployAccount) {
+  parent: openAIService
+  name: modelDeploymentName
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: modelName
+      version: modelVersion
+    }
+  }
+  sku: {
+    name: 'GlobalStandard'
+    capacity: capacity
+  }
+  tags: tags
+}
+
+// Model deployment for existing account
+resource modelDeploymentForExisting 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = if (!deployAccount) {
+  parent: openAIExisting
+  name: modelDeploymentName
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: modelName
+      version: modelVersion
+    }
+  }
+  sku: {
+    name: 'GlobalStandard'
+    capacity: capacity
+  }
+  tags: tags
+}
+
+// Outputs
+output openAIAccountId string = deployAccount ? openAIService.id : openAIExisting.id
+output openAIEndpoint  string = deployAccount ? openAIService.properties.endpoint : openAIExisting.properties.endpoint
+output deploymentId     string = deployAccount ? modelDeploymentForAccount.id : modelDeploymentForExisting.id
