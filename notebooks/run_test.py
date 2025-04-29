@@ -31,7 +31,6 @@ if __name__ == "__main__":
     print("AudioData instance:", audio_data_1)
     print("AudioData instance:", audio_data_2)
 
-
     text_data_1 = TextData(
         source="./data/documents/aoai-assistants.pdf",
         objective="Explains Azure OpenAI and its features",
@@ -73,6 +72,12 @@ if __name__ == "__main__":
     print("Assembly created with agents:", assembly)
 
     orchestrator = ToolerOrchestrator()
-    response = asyncio.run(orchestrator.run_interaction(assembly=assembly, prompt="Explain how may I use Azure OpenAI to build a chatbot on AKS or ACA", strategy="llm"))
+    response = asyncio.run(
+        orchestrator.run_interaction(
+            assembly=assembly,
+            prompt="Which files you have locally available that contains best practices for building multi-agent systems?",
+            strategy="llm"
+        )
+    )
     flattened = [str(item) for sublist in response for item in (sublist if isinstance(sublist, list) else [sublist])]
     print("Orchestrator response:", "\n".join(flattened))

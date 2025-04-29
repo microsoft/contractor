@@ -34,6 +34,8 @@ import logging
 
 from typing import Dict, List, Tuple, Any
 
+from dotenv import load_dotenv
+
 import azure.cognitiveservices.speech as speechsdk
 from azure.cosmos.aio import CosmosClient
 from azure.search.documents import SearchClient
@@ -41,6 +43,10 @@ from azure.core.credentials import AzureKeyCredential
 from azure.ai.inference import EmbeddingsClient
 
 from semantic_kernel.functions.kernel_function_decorator import kernel_function
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ENV_FILE = os.path.join(BASE_DIR, ".env")
+load_dotenv(ENV_FILE)
 
 
 logger = logging.getLogger(__name__)

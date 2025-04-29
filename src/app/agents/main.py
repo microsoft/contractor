@@ -83,7 +83,7 @@ AVAILABLE_MODELS: list[AzureChatCompletion] = [
     AzureChatCompletion(
         service_id="default",
         api_key=AZURE_MODEL_KEY,
-        deployment_name="gpt-4o",
+        deployment_name="contractor-4o",
         endpoint=AZURE_MODEL_URL
     ),
     AzureChatCompletion(
@@ -446,19 +446,14 @@ class ToolerOrchestrator:
         :param answer: The corresponding answer object.
         :return: A list of dictionaries mapping grader identifiers to their responses.
         """
-        kernel = sk.Kernel()
+        kernel = sk.Kernel() 
         for service in AVAILABLE_MODELS:
             try:
                 kernel.add_service(service)
             except KernelFunctionAlreadyExistsError as e:
                 logger.error(f"Kernel Function already exist: {e}")
                 pass
-        kernel.add_plugins([
-            KernelPlugin(
-                name=grader.tooler.name,
-                description=grader.tooler.metaprompt
-            ) for grader in self.graders
-        ])
+        kernel.add_plugins({tooler.tooler.name: tooler for tooler in self.graders})
         instruction_template = JINJA_ENV.get_template("reason.jinja")
         rendered_settings = instruction_template.render(
             instructions="You must take the user request and provide a response"
