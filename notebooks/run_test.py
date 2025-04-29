@@ -47,7 +47,7 @@ if __name__ == "__main__":
     print("TextData instance:", text_data_2)
 
     audio_agent = Agent(
-        id=int(uuid.uuid4()),
+        id=str(uuid.uuid4()),
         name="AudioAgent",
         model_id="default",
         metaprompt="This agent handles audio processing and extraction tasks.",
