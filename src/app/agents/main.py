@@ -53,6 +53,7 @@ from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChat
 from semantic_kernel.functions.kernel_arguments import KernelArguments
 from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.exceptions import ServiceResponseException, KernelFunctionAlreadyExistsError
+from semantic_kernel.functions.kernel_function_decorator import kernel_function
 
 from azure.cosmos import exceptions
 from azure.cosmos.aio import CosmosClient
@@ -60,9 +61,7 @@ from azure.identity.aio import DefaultAzureCredential
 
 from app.schemas import Assembly, Agent
 from app.schemas.models import Tool, TextData, ImageData, AudioData, VideoData
-from .operators import Mediator
-
-from app.plugins import AUDIO_PLUGINS, IMAGE_PLUGINS, TEXT_PLUGINS, VIDEO_PLUGINS
+from .operators import Observer
 
 from app.plugins import AUDIO_PLUGINS, IMAGE_PLUGINS, TEXT_PLUGINS, VIDEO_PLUGINS
 
@@ -80,12 +79,11 @@ TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "prompts")
 JINJA_ENV = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIR))
 
 
-
 AVAILABLE_MODELS: list[AzureChatCompletion] = [
     AzureChatCompletion(
         service_id="default",
         api_key=AZURE_MODEL_KEY,
-        deployment_name="gpt-4o",
+        deployment_name="contractor-4o",
         endpoint=AZURE_MODEL_URL
     ),
     AzureChatCompletion(
@@ -120,7 +118,7 @@ class ToolerBase(ABC):
         :param grader: The Grader configuration data (including id, name, metaprompt, model_id).
         :param kernel: A shared Semantic Kernel instance configured with services.
         """
-        self._mediator: Optional[Mediator] = None
+        self._observer: Optional[Observer] = None
         self.kernel = kernel
         self.tooler = tooler
         self.agent: ChatCompletionAgent
@@ -134,9 +132,7 @@ class ToolerBase(ABC):
         the grader's model_id. Then creates the ChatCompletionAgent instance.
         """
         instruction_template = JINJA_ENV.get_template("instruction.jinja")
-        rendered_settings = instruction_template.render(
-            instructions=self.tooler.metaprompt,
-        )
+        rendered_settings = instruction_template.render(instructions=self.tooler.metaprompt)
         settings = self.kernel.get_prompt_execution_settings_from_service_id(service_id=self.tooler.model_id)
         settings.function_choice_behavior = FunctionChoiceBehavior.Auto()
         self.agent = ChatCompletionAgent(
@@ -147,17 +143,17 @@ class ToolerBase(ABC):
         )
 
     @property
-    def mediator(self) -> Optional[Mediator]:
-        return self._mediator
+    def observer(self) -> Optional[Observer]:
+        return self._observer
 
-    @mediator.setter
-    def mediator(self, mediator: Mediator) -> None:
+    @observer.setter
+    def observer(self, observer: Observer) -> None:
         """
         Set the mediator for the grader.
 
         :param mediator: The mediator instance to be set.
         """
-        self._mediator = mediator
+        self._observer = observer
 
     async def add_tools(self, tools: list) -> None:  # pylint: disable=arguments-differ
         """
@@ -177,12 +173,20 @@ class ToolerBase(ABC):
     async def _execute(self, chat: ChatHistory, rendered_prompt: str) -> str:
         chat.add_message(ChatMessageContent(role=AuthorRole.USER, content=rendered_prompt))
         response = ""
-        async for message in self.agent.invoke(messages=chat.messages):  # type: ignore[assignment]
-            response += message.content.content
-            chat.add_message(ChatMessageContent(role=AuthorRole.ASSISTANT, content=message.content.content))
+        while True:
+            try:
+                async for message in self.agent.invoke(messages=chat.messages):  # type: ignore[assignment]
+                    if message.content.content == "":
+                        break
+                    response += message.content.content
+                    chat.add_message(ChatMessageContent(role=AuthorRole.ASSISTANT, content=message.content.content))
+                break
+            except ServiceResponseException as e:
+                logger.error(f"Service response error: {e}")
+                await asyncio.sleep(60)
 
-        if self.mediator:
-            self.mediator.notify(
+        if self.observer:
+            self.observer.notify(
                 sender=self,
                 event="interaction_done",
                 data={
@@ -211,6 +215,10 @@ class TextTooler(ToolerBase):
     """
 
     @override
+    @kernel_function(
+        name="TextTooler",
+        description="A tooler that interacts with a text prompt.",
+    )
     async def interact(self, prompt: str, chat: ChatHistory) -> str:  # pylint: disable=arguments-differ
         """
         Interact with a provided question and answer using the ChatCompletionAgent.
@@ -243,6 +251,10 @@ class ImageTooler(ToolerBase):
     """
 
     @override
+    @kernel_function(
+        name="ImageTooler",
+        description="Tooler that interacts with an image prompt.",
+    )
     async def interact(self, prompt: str, chat: ChatHistory) -> str:  # pylint: disable=arguments-differ
         """
         Interact with a provided question and answer using the ChatCompletionAgent.
@@ -275,6 +287,10 @@ class AudioTooler(ToolerBase):
     """
 
     @override
+    @kernel_function(
+        name="AudioTooler",
+        description="Tooler that interacts with an audio prompt.",
+    )
     async def interact(self, prompt: str, chat: ChatHistory) -> str:  # pylint: disable=arguments-differ
         """
         Interact with a provided question and answer using the ChatCompletionAgent.
@@ -307,6 +323,10 @@ class VideoTooler(ToolerBase):
     """
 
     @override
+    @kernel_function(
+        name="VideoTooler",
+        description="Tooler that interacts with a video prompt.",
+    )
     async def interact(self, prompt: str, chat: ChatHistory) -> str:  # pylint: disable=arguments-differ
         """
         Interact with a provided question and answer using the ChatCompletionAgent.
@@ -388,7 +408,7 @@ class ToolerOrchestrator:
     interactions in either parallel or sequential mode.
     """
     def __init__(self) -> None:
-        self.graders: List[ToolerBase] = []
+        self.toolers: List[ToolerBase] = []
 
     async def _parallel_processing(self, prompt: str) -> List:
         """
@@ -398,11 +418,11 @@ class ToolerOrchestrator:
         :param answer: The associated answer object.
         :return: A list of responses from all graders executed in parallel.
         """
-        async def interact_with_grader(grader: ToolerBase, chat: ChatHistory) -> str:
-            return await grader.interact(prompt, chat)
+        async def interact_with_grader(tooler: ToolerBase, chat: ChatHistory) -> str:
+            return await tooler.interact(prompt, chat)
 
         chat = ChatHistory()
-        return await asyncio.gather(*(interact_with_grader(grader, chat) for grader in self.graders))
+        return await asyncio.gather(*(interact_with_grader(tooler, chat) for tooler in self.toolers))
 
     async def _sequential_processing(self, prompt: str) -> List:
         """
@@ -414,9 +434,8 @@ class ToolerOrchestrator:
         """
         answers = []
         chat = ChatHistory()
-        for index, grader in enumerate(self.graders):
-            result = await grader.interact(prompt, chat)
-            answers.append({f"agent_{index}": result})
+        for index, tooler in enumerate(self.toolers):
+            result = await tooler.interact(prompt, chat)
         return answers
 
     async def _llm_processing(self, prompt: str) -> List:
@@ -427,19 +446,14 @@ class ToolerOrchestrator:
         :param answer: The corresponding answer object.
         :return: A list of dictionaries mapping grader identifiers to their responses.
         """
-        kernel = sk.Kernel()
+        kernel = sk.Kernel() 
         for service in AVAILABLE_MODELS:
             try:
                 kernel.add_service(service)
             except KernelFunctionAlreadyExistsError as e:
                 logger.error(f"Kernel Function already exist: {e}")
                 pass
-        kernel.add_plugins([
-            KernelPlugin(
-                name=grader.tooler.name,
-                description=grader.tooler.metaprompt
-            ) for grader in self.graders
-        ])
+        kernel.add_plugins({tooler.tooler.name: tooler for tooler in self.graders})
         instruction_template = JINJA_ENV.get_template("reason.jinja")
         rendered_settings = instruction_template.render(
             instructions="You must take the user request and provide a response"
@@ -458,10 +472,20 @@ class ToolerOrchestrator:
         )
         chat = ChatHistory()
         chat.add_message(ChatMessageContent(role=AuthorRole.USER, content=prompt))
-        result = []
-        async for message in agent.invoke(messages=chat.messages):  # type: ignore[assignment]
-            result.append(message.content)
-        return [result]
+        result = []            
+        while True:
+            try:
+                async for message in agent.invoke(messages=chat.messages):  # type: ignore[assignment]
+                    if message.content.content == "":
+                        break
+                    result.append(message.content)
+                    chat.add_message(ChatMessageContent(role=AuthorRole.ASSISTANT, content=message.content.content))
+                break
+            except ServiceResponseException as e:
+                logger.error(f"Service response error: {e}")
+                await asyncio.sleep(60)
+
+        return result
 
     async def run_interaction(
             self,
@@ -485,8 +509,6 @@ class ToolerOrchestrator:
         :return: The aggregated responses from all grader interactions.
         """
         factory = ToolerFactory()
-        if isinstance(assembly, str):
-            assembly = await self.fetch_assembly(assembly)
         if isinstance(assembly, str):
             assembly = await self.fetch_assembly(assembly)
         self.graders = factory.create_toolers(assembly)

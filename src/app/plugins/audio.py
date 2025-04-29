@@ -34,6 +34,8 @@ import logging
 
 from typing import Dict, List, Tuple, Any
 
+from dotenv import load_dotenv
+
 import azure.cognitiveservices.speech as speechsdk
 from azure.cosmos.aio import CosmosClient
 from azure.search.documents import SearchClient
@@ -41,6 +43,10 @@ from azure.core.credentials import AzureKeyCredential
 from azure.ai.inference import EmbeddingsClient
 
 from semantic_kernel.functions.kernel_function_decorator import kernel_function
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ENV_FILE = os.path.join(BASE_DIR, ".env")
+load_dotenv(ENV_FILE)
 
 
 logger = logging.getLogger(__name__)
@@ -53,11 +59,10 @@ AZURE_AUDIO_EMBEDDINGS_URL = os.environ.get("AZURE_AUDIO_EMBEDDINGS_URL", "")
 EMBEDDINGS_MODEL = os.environ.get("EMBEDDINGS_MODEL", "text-embedding-3-large")
 
 
-
 class AudioProcessor:
     """
     Processa arquivos de áudio usando o Azure Speech SDK para transcrição e diarização.
-    
+
     Atributos:
         speech_config (speechsdk.SpeechConfig): Configuração do serviço de fala.
     """
@@ -194,7 +199,6 @@ class AudioEmbedder:
         Returns:
             tuple: A tuple containing the generated embedding (list) and the transcription (str).
         """
-        processor = AudioProcessor()
         processor = AudioProcessor()
         transcription = processor.process_transcription(audio_file)
         embedding = self._generate_embedding(transcription)
