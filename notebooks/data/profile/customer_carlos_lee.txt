@@ -1,0 +1,21 @@
+Customer: Carlos Lee
+
+Purchase History:
+| Date       | Item                | Amount ($) |
+|------------|---------------------|------------|
+| 2022-02-10 | Television          | 1100       |
+| 2022-08-30 | Gaming Console      | 500        |
+| 2023-01-25 | Laptop              | 1300       |
+| 2023-09-12 | Tablet              | 400        |
+
+Debt History:
+| Date       | Debt Type   | Amount ($) | Status    |
+|------------|-------------|------------|-----------|
+| 2022-09-01 | Credit Card | 450        | Paid      |
+| 2023-04-20 | Loan        | 1000       | Ongoing   |
+
+Prosecution Data:
+- Crimes Committed: Tax Evasion (2022)
+- Judgement Outcome: Found guilty, fined $5,000, no jail time
+
+Summary: Carlos Lee is a frequent electronics buyer with a manageable debt profile. He has a record of tax evasion but no violent crimes.

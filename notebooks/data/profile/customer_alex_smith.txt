@@ -1,0 +1,23 @@
+Customer: Alex Smith
+
+Purchase History:
+| Date       | Item                | Amount ($) |
+|------------|---------------------|------------|
+| 2022-01-15 | Laptop              | 1200       |
+| 2022-03-10 | Smartphone          | 800        |
+| 2022-07-22 | Headphones          | 150        |
+| 2023-02-05 | Smartwatch          | 250        |
+
+Debt History:
+| Date       | Debt Type   | Amount ($) | Status    |
+|------------|-------------|------------|-----------|
+| 2022-04-01 | Credit Card | 500        | Paid      |
+| 2023-01-10 | Loan        | 2000       | Ongoing   |
+
+Prosecution Data:
+- Crimes Committed: None
+- Judgement Outcome: No criminal record
+
+Summary:
+Alex Smith is a regular customer with a history of timely purchases and minor debts, all of which have been managed responsibly.
+No prosecution or criminal activity on record.
