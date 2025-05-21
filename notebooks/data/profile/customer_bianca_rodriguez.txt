@@ -1,0 +1,25 @@
+Customer: Bianca Rodriguez
+
+Purchase History:
+| Date       | Item                | Amount ($) |
+|------------|---------------------|------------|
+| 2021-11-20 | Refrigerator        | 900        |
+| 2022-05-14 | Oven                | 700        |
+| 2022-12-01 | Dishwasher          | 600        |
+| 2023-06-18 | Microwave           | 200        |
+
+Debt History:
+| Date       | Debt Type   | Amount ($) | Status    |
+|------------|-------------|------------|-----------|
+| 2022-06-01 | Credit Card | 300        | Paid      |
+| 2023-03-15 | Loan        | 1500       | Paid      |
+
+Prosecution Data:
+- Crimes Committed: Fraud (2021), Assault (2023)
+- Judgement Outcome: 
+    - Fraud: Found guilty, sentenced to probation
+    - Assault: Found guilty, sentenced to 1 year in prison (violent crime)
+
+Summary:
+Bianca Rodriguez has a solid purchase and debt repayment history,
+but has been prosecuted for fraud and a violent crime (assault), resulting in a criminal record.

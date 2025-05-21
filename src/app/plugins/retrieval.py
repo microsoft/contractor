@@ -34,6 +34,7 @@ from semantic_kernel.functions.kernel_function_decorator import kernel_function
 from docx import Document
 from pypdf import PdfReader
 from PIL import Image
+import json
 
 
 logger = logging.getLogger(__name__)
@@ -285,7 +286,10 @@ class CosmosSearchTool:
 
 class LocalFileRetriever:
 
-    @kernel_function(name="load_text_files", description="Loads and extracts text files in the specified folder")
+    @kernel_function(
+        name="load_text_files",
+        description="Loads and extracts text files, such as txt and json, in the specified local folder"
+    )
     def load_texts(self, folder: str) -> List[Dict[str, Any]]:
         """
         Load text contents from TXT, DOCX, and PDF files.
@@ -295,7 +299,7 @@ class LocalFileRetriever:
                                   "content" contains the text extracted from the file.
         """
         texts = []
-        # Process TXT files
+
         for file_path in glob.glob(os.path.join(folder, "*.txt")):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
@@ -303,8 +307,7 @@ class LocalFileRetriever:
                 texts.append({"path": file_path, "content": content})
             except Exception as e:
                 logger.error(f"Error reading TXT file {file_path}: {str(e)}")
-        
-        # Process DOCX files
+
         for file_path in glob.glob(os.path.join(folder, "*.docx")):
             try:
                 doc = Document(file_path)
@@ -312,8 +315,7 @@ class LocalFileRetriever:
                 texts.append({"path": file_path, "content": content})
             except Exception as e:
                 logger.error(f"Error reading DOCX file {file_path}: {str(e)}")
-        
-        # Process PDF files
+
         for file_path in glob.glob(os.path.join(folder, "*.pdf")):
             try:
                 with open(file_path, "rb") as f:
@@ -324,7 +326,15 @@ class LocalFileRetriever:
                 texts.append({"path": file_path, "content": content})
             except Exception as e:
                 logger.error(f"Error reading PDF file {file_path}: {str(e)}")
-        
+
+        for file_path in glob.glob(os.path.join(folder, "*.json")):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = json.load(f)
+                texts.append({"path": file_path, "content": content})
+            except Exception as e:
+                logger.error(f"Error reading JSON file {file_path}: {str(e)}")
+
         return texts
 
     @kernel_function(name="load_audio_files", description="Loads and extracts audio files in the specified folder")

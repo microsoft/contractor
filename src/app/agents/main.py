@@ -51,7 +51,6 @@ from semantic_kernel.connectors.ai import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChatPromptExecutionSettings
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChatPromptExecutionSettings
 from semantic_kernel.functions.kernel_arguments import KernelArguments
-from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.exceptions import ServiceResponseException, KernelFunctionAlreadyExistsError
 from semantic_kernel.functions.kernel_function_decorator import kernel_function
 
@@ -64,6 +63,7 @@ from app.schemas.models import Tool, TextData, ImageData, AudioData, VideoData
 from .operators import Observer
 
 from app.plugins import AUDIO_PLUGINS, IMAGE_PLUGINS, TEXT_PLUGINS, VIDEO_PLUGINS
+from app.plugins.compliance import TestContext, SendingPromptsStrategy
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -73,8 +73,8 @@ load_dotenv(ENV_FILE)
 COSMOS_DB_NAME = os.getenv("COSMOS_QNA_NAME", "mydb")
 COSMOS_ENDPOINT = os.getenv("COSMOS_ENDPOINT", "https://myendpoint.documents.azure.com:443/")
 COSMOS_ASSEMBLY_TABLE = os.getenv("COSMOS_ASSEMBLY_TABLE", "assembly")
-AZURE_MODEL_KEY = os.getenv("AZURE_MODEL_KEY", "")
-AZURE_MODEL_URL = os.getenv("AZURE_MODEL_URL", "")
+AZURE_FOUNDRY_KEY = os.getenv("AZURE_FOUNDRY_KEY", "")
+AZURE_FOUNDRY_URL = os.getenv("AZURE_FOUNDRY_URL", "")
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "prompts")
 JINJA_ENV = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIR))
 
@@ -82,25 +82,25 @@ JINJA_ENV = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIR))
 AVAILABLE_MODELS: list[AzureChatCompletion] = [
     AzureChatCompletion(
         service_id="default",
-        api_key=AZURE_MODEL_KEY,
+        api_key=AZURE_FOUNDRY_KEY,
         deployment_name="contractor-4o",
-        endpoint=AZURE_MODEL_URL
+        endpoint=AZURE_FOUNDRY_URL
     ),
     AzureChatCompletion(
         service_id="mini",
-        api_key=AZURE_MODEL_KEY,
+        api_key=AZURE_FOUNDRY_KEY,
         deployment_name="gpt-4o-mini",
-        endpoint=AZURE_MODEL_URL
+        endpoint=AZURE_FOUNDRY_URL
     ),
     AzureChatCompletion(
         service_id="reasoning",
-        api_key=AZURE_MODEL_KEY,
+        api_key=AZURE_FOUNDRY_KEY,
         deployment_name="o3-mini",
-        endpoint=AZURE_MODEL_URL,
+        endpoint=AZURE_FOUNDRY_URL,
         api_version="2024-12-01-preview"
     )
 ]
-
+    
 PROMPT_TYPE = Union[TextData, ImageData, AudioData, VideoData]
 
 
@@ -123,6 +123,25 @@ class ToolerBase(ABC):
         self.tooler = tooler
         self.agent: ChatCompletionAgent
         self.__prepare()
+
+    async def _compliance_validation(self, prompt: str) -> bool:
+        """
+        Validate the prompt for compliance issues.
+
+        Uses the compliance tools to check for governance issues in the prompt.
+
+        :param prompt: The prompt to be validated.
+        :return: True if the prompt is compliant, False otherwise.
+        """
+        ctx = TestContext()
+        compliance_strategy = SendingPromptsStrategy()
+        compliance_params = {
+            "direct_prompts": [{"value": prompt, "data_type": "text"}],
+            "print_results": False
+        }
+        compliance_results = await compliance_strategy(ctx, compliance_params)
+        logger.info(f"Compliance check results: {compliance_results}")
+        return compliance_results
 
     def __prepare(self):
         """
@@ -171,6 +190,7 @@ class ToolerBase(ABC):
             self.kernel.add_plugin(tool, tool.__class__.__name__)
 
     async def _execute(self, chat: ChatHistory, rendered_prompt: str) -> str:
+        await self._compliance_validation(rendered_prompt)
         chat.add_message(ChatMessageContent(role=AuthorRole.USER, content=rendered_prompt))
         response = ""
         while True:
@@ -240,6 +260,16 @@ class TextTooler(ToolerBase):
             logger.error(f"Service response error: {e}")
             await asyncio.sleep(60)
             return await self.interact(prompt, chat)
+
+    async def add_tools(self, tools: list = []) -> None:
+        """
+        Always add TEXT_PLUGINS (which includes compliance plugins).
+
+        :param tools: Optional list of additional tools to add.
+        """
+        plugins = list(set(tools + list(TEXT_PLUGINS)))
+        for tool in plugins:
+            self.kernel.add_plugin(tool, tool.__class__.__name__)
 
 
 class ImageTooler(ToolerBase):
@@ -441,12 +471,17 @@ class ToolerOrchestrator:
     async def _llm_processing(self, prompt: str) -> List:
         """
         Execute the 'interact' method of all graders by using a new agent that has agents as tools.
-
-        :param question: The question to be processed.
-        :param answer: The corresponding answer object.
-        :return: A list of dictionaries mapping grader identifiers to their responses.
+        Before invoking the agent, use the compliance tool to check the prompt for governance issues.
         """
-        kernel = sk.Kernel() 
+        ctx = TestContext()
+        compliance_strategy = SendingPromptsStrategy()
+        compliance_params = {
+            "direct_prompts": [{"value": prompt, "data_type": "text"}],
+            "print_results": False
+        }
+        compliance_results = await compliance_strategy(ctx, compliance_params)
+        logger.info(f"Compliance check results: {compliance_results}")
+        kernel = sk.Kernel()
         for service in AVAILABLE_MODELS:
             try:
                 kernel.add_service(service)
@@ -461,7 +496,7 @@ class ToolerOrchestrator:
         settings = AzureChatPromptExecutionSettings(
             service_id="reasoning",
             max_completion_tokens=4000,
-            reasoning_effort="high",
+            reasoning_effort="high"
         )
         settings.function_choice_behavior = FunctionChoiceBehavior.Auto()
         agent = ChatCompletionAgent(
@@ -472,7 +507,7 @@ class ToolerOrchestrator:
         )
         chat = ChatHistory()
         chat.add_message(ChatMessageContent(role=AuthorRole.USER, content=prompt))
-        result = []            
+        result = []
         while True:
             try:
                 async for message in agent.invoke(messages=chat.messages):  # type: ignore[assignment]
