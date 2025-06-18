@@ -3,9 +3,9 @@ import sys
 import uuid
 import asyncio
 from dotenv import load_dotenv
-from app.schemas.models import Agent, Assembly, TextData
-from app.agents.main import ToolerOrchestrator
-from app.plugins.compliance import TestContext, SendingPromptsStrategy
+from backend.app.schemas.models import Agent, Assembly, TextData
+from backend.app.agents.main import ToolerOrchestrator
+from backend.app.plugins.compliance import TestContext, SendingPromptsStrategy
 
 if __name__ == "__main__":
     src_path = os.path.abspath(os.path.join(os.getcwd(), "src"))
@@ -73,7 +73,8 @@ if __name__ == "__main__":
         "You have access to two data sources: a conversation log and a customer profile. "
         "The conversation log is located at: {conversation_path} "
         "and the customer profile is located at: {profile_path}. "
-        "Analyze these sources for any compliance issues, such as admissions of fraud, violence, criminal records, or financial risks. "
+        "Analyze these sources for any compliance issues, "
+        "such as admissions of fraud, violence, criminal records, or financial risks. "
         "Summarize your findings and flag any issues."
     ).format(
         conversation_path=text_data_conversation.source,
@@ -91,10 +92,10 @@ if __name__ == "__main__":
     # Orchestrate using ToolerOrchestrator with the new assembly and prompt
     orchestrator = ToolerOrchestrator()
     result = asyncio.run(
-        orchestrator.run_interaction(
+        orchestrator.invoke(
             assembly=assembly,
             prompt=prompt,
-            strategy="llm"
+            strategy="group"
         )
     )
     print("\n--- Compliance Orchestration Result (Bianca Rodriguez, Data Source Only) ---")

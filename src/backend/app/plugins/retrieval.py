@@ -280,7 +280,7 @@ class CosmosSearchTool:
                 items = [item async for item in container.query_items(query=sql_query, enable_cross_partition_query=True)]
                 return items
         except Exception as e:
-            logger.error(f"Error performing Cosmos DB search: {str(e)}")
+            logger.error("Error performing Cosmos DB search: %s", str(e))
             return []
 
 
@@ -288,11 +288,11 @@ class LocalFileRetriever:
 
     @kernel_function(
         name="load_text_files",
-        description="Loads and extracts text files, such as txt and json, in the specified local folder"
+        description="Loads and extracts content from txt and json files, in the specified local folder"
     )
     def load_texts(self, folder: str) -> List[Dict[str, Any]]:
         """
-        Load text contents from TXT, DOCX, and PDF files.
+        Load text contents from TXT and JSON files.
 
         Returns:
             List[Dict[str, Any]]: A list of dictionaries with keys "path" and "content", where
@@ -306,26 +306,7 @@ class LocalFileRetriever:
                     content = f.read()
                 texts.append({"path": file_path, "content": content})
             except Exception as e:
-                logger.error(f"Error reading TXT file {file_path}: {str(e)}")
-
-        for file_path in glob.glob(os.path.join(folder, "*.docx")):
-            try:
-                doc = Document(file_path)
-                content = "\n".join([para.text for para in doc.paragraphs])
-                texts.append({"path": file_path, "content": content})
-            except Exception as e:
-                logger.error(f"Error reading DOCX file {file_path}: {str(e)}")
-
-        for file_path in glob.glob(os.path.join(folder, "*.pdf")):
-            try:
-                with open(file_path, "rb") as f:
-                    reader = PdfReader(f)
-                    content = ""
-                    for page in reader.pages:
-                        content += page.extract_text() or ""
-                texts.append({"path": file_path, "content": content})
-            except Exception as e:
-                logger.error(f"Error reading PDF file {file_path}: {str(e)}")
+                logger.error("Error reading TXT file %s: %s", file_path, str(e))
 
         for file_path in glob.glob(os.path.join(folder, "*.json")):
             try:
@@ -333,7 +314,7 @@ class LocalFileRetriever:
                     content = json.load(f)
                 texts.append({"path": file_path, "content": content})
             except Exception as e:
-                logger.error(f"Error reading JSON file {file_path}: {str(e)}")
+                logger.error("Error reading JSON file %s: %s", file_path, str(e))
 
         return texts
 
@@ -353,7 +334,7 @@ class LocalFileRetriever:
                         content = f.read()
                     audio_files.append({"path": file_path, "content": content})
                 except Exception as e:
-                    logger.error(f"Error reading audio file {file_path}: {str(e)}")
+                    logger.error("Error reading audio file %s: %s", file_path, str(e))
         return audio_files
 
     @kernel_function(name="load_image_files", description="Loads and extracts image files in the specified folder")
@@ -371,7 +352,7 @@ class LocalFileRetriever:
                     image = Image.open(file_path)
                     image_files.append({"path": file_path, "content": image})
                 except Exception as e:
-                    logger.error(f"Error reading image file {file_path}: {str(e)}")
+                    logger.error("Error reading image file %s: %s", file_path, str(e))
         return image_files
 
     @kernel_function(name="load_video_files", description="Loads and extracts video files in the specified folder")
@@ -389,7 +370,7 @@ class LocalFileRetriever:
                     content = f.read()
                 videos.append({"path": file_path, "content": content})
             except Exception as e:
-                logger.error(f"Error reading video file {file_path}: {str(e)}")
+                logger.error("Error reading video file %s: %s", file_path, str(e))
         return videos
 
     @kernel_function(name="load_files", description="Loads and extracts text, audio, video and image files in the specified folder")
@@ -406,3 +387,37 @@ class LocalFileRetriever:
             "images": self.load_images(folder),
             "videos": self.load_videos(folder)
         }
+
+
+class PDFLoader:
+    """
+    Loads PDF files and extracts text content using pypdf.
+    """
+    @kernel_function(
+        name="load_pdf_files",
+        description="Loads a PDF file and extracts text from a range of pages with optional offset."
+    )
+    def load_pdfs(self, file_path: str, page_amount: int = 10, offset: int = 0) -> str:
+        """
+        Extracts text from a range of pages in a PDF file, starting from offset.
+
+        Args:
+            file_path (str): Path to the PDF file.
+            page_amount (int, optional): Number of pages to extract text from. Defaults to 10.
+            offset (int, optional): Page offset to start extraction. Defaults to 0 (first page).
+
+        Returns:
+            str: The extracted text content from the PDF file.
+        """
+        try:
+            with open(file_path, "rb") as f:
+                reader = PdfReader(f)
+                content = ""
+                start = offset
+                end = offset + page_amount
+                for page in reader.pages[start:end]:
+                    content += page.extract_text() or ""
+        except Exception as e:
+            logger.error("Error reading PDF file %s: %s", file_path, str(e))
+            content = ""
+        return content

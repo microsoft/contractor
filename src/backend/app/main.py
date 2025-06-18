@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from app import __app__, __version__
 from app.agents import ToolerOrchestrator
 from app.cosmos_crud import CosmosCRUD
-from app.schemas import *
+from app.schemas import Assembly, JobResponse, Tool, TextData, ImageData, AudioData, VideoData, RESPONSES, ErrorMessage, SuccessMessage
 
 
 load_dotenv(find_dotenv())
@@ -157,9 +157,9 @@ async def evaluate_judgment(job: JobResponse) -> JSONResponse:
     Endpoint that evaluates a prompt using a Agent Assembly.
     """
     try:
-        final_verdict = await ToolerOrchestrator().run_interaction(assembly=job.assembly_id, prompt=job.prompt)
+        final_verdict = await ToolerOrchestrator().invoke(assembly=job.assembly_id, prompt=job.prompt)
     except Exception as ex:
-        raise HTTPException(status_code=500, detail=str(ex))
+        raise HTTPException(status_code=500, detail=str(ex)) from ex
 
     response_body = SuccessMessage(
         title="Evaluation Complete",

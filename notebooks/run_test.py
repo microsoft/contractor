@@ -5,8 +5,8 @@ import asyncio
 
 from dotenv import load_dotenv
 
-from app.agents.main import ToolerOrchestrator
-from app.schemas.models import AudioData, TextData, Agent, Assembly
+from backend.app.agents.main import ToolerOrchestrator
+from backend.app.schemas.models import AudioData, TextData, Agent, Assembly
 
 
 if __name__ == "__main__":
@@ -73,10 +73,10 @@ if __name__ == "__main__":
 
     orchestrator = ToolerOrchestrator()
     response = asyncio.run(
-        orchestrator.run_interaction(
+        orchestrator.invoke(
             assembly=assembly,
             prompt="Which files you have locally available that contains best practices for building multi-agent systems?",
-            strategy="llm"
+            strategy="group"
         )
     )
     flattened = [str(item) for sublist in response for item in (sublist if isinstance(sublist, list) else [sublist])]

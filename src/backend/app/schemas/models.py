@@ -36,6 +36,7 @@ class Agent(BaseModel):
     name: str = Field(..., description="Agent Name")
     model_id: str = Field(..., description="Model ID")
     metaprompt: str = Field(..., description="Agent System Prompt")
+    description: Optional[str] = Field(default=None, description="Agent Description")
     objective: Literal["image", "text", "audio", "video"] = Field(default='text', description="Agent Objective")
 
     @classmethod

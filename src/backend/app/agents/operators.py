@@ -24,26 +24,9 @@ Usage:
     #    -> Returns the final verdict from the SuperAgent after orchestrating sub-agents.
 """
 
-import asyncio
-import json
 import os
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Callable, Dict
-
-import semantic_kernel as sk
-from azure.cosmos import exceptions
-from azure.cosmos.aio import CosmosClient
-from azure.identity.aio import DefaultAzureCredential
-from semantic_kernel.agents.chat_completion.chat_completion_agent import ChatCompletionAgent
-from semantic_kernel.connectors.ai import FunctionChoiceBehavior
-from semantic_kernel.contents.chat_history import ChatHistory
-from semantic_kernel.contents.function_call_content import FunctionCallContent
-from semantic_kernel.contents.function_result_content import FunctionResultContent
-from semantic_kernel.functions.kernel_arguments import KernelArguments
-
-from semantic_kernel.planners.plan import Plan
-
-from app.schemas import Assembly, Agent
+from typing import Any, List, Callable, Dict
 
 COSMOS_DB_NAME = os.getenv("COSMOS_DB_NAME", "mydb")
 COSMOS_ENDPOINT = os.getenv("COSMOS_ENDPOINT", "https://myendpoint.documents.azure.com:443/")
@@ -69,7 +52,6 @@ class Listener(ABC):
         :param event: A string describing the event type (e.g., "evaluation_done").
         :param data: A dictionary containing additional data (e.g., agent_id, result).
         """
-        pass
 
 
 class Mediator(ABC):
@@ -92,7 +74,6 @@ class Mediator(ABC):
         :param event: A string describing the event type (e.g., "evaluation_done").
         :param data: A dictionary containing additional data (e.g., agent_id, result).
         """
-        pass
 
     @abstractmethod
     def notify(self, sender: object, event: str, data: dict) -> None:
@@ -125,7 +106,6 @@ class Observer(ABC):
         :param event: A string describing the event type (e.g., "evaluation_done").
         :param data: A dictionary containing additional data (e.g., agent_id, result).
         """
-        pass
 
     @abstractmethod
     def act(self, sender: object, event: str, data: dict) -> None:
@@ -136,4 +116,3 @@ class Observer(ABC):
         :param event: A string describing the event type (e.g., "evaluation_done").
         :param data: A dictionary containing additional data (e.g., agent_id, result).
         """
-        pass
