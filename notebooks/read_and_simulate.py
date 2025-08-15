@@ -20,12 +20,16 @@ SRC = ROOT / 'src/essays'
 sys.path.append(str(SRC))
 
 base = Path(__file__).parent / "data" / "translation"
+# Lista dinâmica de PDFs de referência e idiomas
+from app.cases.utils import get_reference_pdfs, derive_languages_from_filenames
+pdf_files = get_reference_pdfs(base)
+languages = derive_languages_from_filenames(pdf_files)
 BASE_PROMPT = f"""
 ──────────────────────────────────────────────────────────────────────────────
 Pasta de dados: {base}
 
-• Você tem à sua disposição os seguintes PDFs linguísticos: katukina_01.pdf, katukina_02.pdf, pano_01.pdf, pano_02.pdf
-• Translitere cada fala para **Katukina** e **Pano**, citando páginas dos PDFs. Use 10 páginas por vez em suas consultas.
+• Você tem à sua disposição os seguintes arquivos PDF de referência: {', '.join(pdf_files)}. Identifique dinamicamente os idiomas nativos a partir dos nomes dos arquivos.
+• Translitere cada fala para os seguintes idiomas identificados: {', '.join(languages)}, citando páginas dos PDFs utilizados. Use até 10 páginas por vez em suas consultas.
 
 Macro-tarefa do sistema  
 ───────────────────────
@@ -61,7 +65,6 @@ class TransliterationOutput(BaseModel):
 
 class TransliterationChatManager(GroupChatManager):
     async def filter_results(self, chat_history: ChatHistory) -> MessageResult:
-        # Extrai transliteração e avaliação do histórico
         translit = None
         review = None
         for msg in reversed(chat_history.messages):
@@ -89,7 +92,6 @@ class TransliterationChatManager(GroupChatManager):
         )
 
     async def should_terminate(self, chat_history: ChatHistory) -> BooleanResult:
-        # Procura score_global e acao_recomendada na última avaliação
         for msg in reversed(chat_history.messages):
             content = getattr(msg, 'content', '')
             last_agent = getattr(msg, 'name', 'User')
@@ -105,17 +107,14 @@ class TransliterationChatManager(GroupChatManager):
         return BooleanResult(result=False, reason="Score ou aprovação ainda não atingidos.")
 
     async def should_request_user_input(self, chat_history: ChatHistory) -> BooleanResult:
-        # Nunca solicita input do usuário durante o ciclo automático
         return BooleanResult(result=False, reason="Ciclo automático, sem input do usuário.")
 
     async def select_next_agent(self, chat_history: ChatHistory, participant_descriptions: dict[str, str]) -> StringResult:
         agents = list(participant_descriptions.keys())
-        # Se não há mensagens de agentes ainda (apenas user), começa com transliteração
         if not chat_history.messages or (
             len(chat_history.messages) == 1 and chat_history.messages[0].role == AuthorRole.USER
         ):
             return StringResult(result=agents[0], reason="Primeira rodada: transliteração.")
-        # Determina se o último respondente foi o reviewer pelo conteúdo
         last_msg = chat_history.messages[-1]
         last_agent = getattr(last_msg, 'name', '')
         is_reviewer = False
@@ -135,7 +134,6 @@ class TransliterationChatManager(GroupChatManager):
                 return StringResult(result=agents[0], reason=last_msg.content)
             else:
                 return StringResult(result=agents[0], reason="Score suficiente, transliteração final.")
-        # Se não foi reviewer, alterna para o avaliador
         return StringResult(result=agents[1], reason="Alterna para avaliador.")
 
 
@@ -173,7 +171,9 @@ def build_translator_prompt(dialogo, feedback=None, translit_anterior=None):
     base_prompt = {
         "json_object": True,
         "prompt": f"""
-        Você é um tradutor especializado em línguas indígenas. Você receberá diálogos em português e deve traduzi-los para Katukina e Pano, utilizando os pdfs disponíveis para referência. Os PDFs são conjuntos de texto que oferecem uma indicação da fonética da língua, mas não indicam a gramática. Você deve citar as fontes de cada tradução, incluindo a página do PDF consultado.\n\nFormate a resposta como JSON puro.\n\nSe houver feedback do avaliador, implemente as recomendações explicitamente, não repita a resposta anterior.\n\n{BASE_PROMPT}"""
+Você é um tradutor especializado em línguas indígenas. Você receberá diálogos em português e deve traduzi-los para todos os idiomas identificados nos arquivos PDF de referência: {', '.join(languages)}.
+Consulte os arquivos: {', '.join(pdf_files)} para citar as fontes (inclua página do PDF).
+\n\nFormate a resposta como JSON puro.\n\nSe houver feedback do avaliador, implemente as recomendações explicitamente, não repita a resposta anterior.\n\n{BASE_PROMPT}"""
     }
     if feedback:
         base_prompt["feedback_anterior"] = feedback
@@ -231,15 +231,15 @@ async def main():
             "json_object": True,
             "prompt": f"""
             Você é um tradutor especializado em línguas indígenas.
-            Você receberá diálogos em português e deve traduzi-los para Katukina e Pano,
-            utilizando os pdfs disponíveis para referência.
-            Os PDFs são conjuntos de texto que oferecem uma indicação da fonética da língua, mas não indicam a gramática.
+            Você receberá diálogos em português e deve traduzi-los para todos os idiomas indígenas identificados nos arquivos PDF disponíveis na pasta de dados: {base}.
+            Considere explicitamente os idiomas Katukina, Pano, Kulina, Marubo, Matses e quaisquer outros presentes na pasta de dados.
+            Os PDFs são conjuntos de texto que oferecem uma indicação da fonética das línguas, mas não indicam a gramática.
             Você deve citar as fontes de cada tradução, incluindo a página do PDF consultado.
+
             ───────────────────────────────────────────────────────────────────────────────
-            {BASE_PROMPT}
-            ───────────────────────────────────────────────────────────────────────────────
-            • Você tem à sua disposição os seguintes PDFs linguísticos: katukina_01.pdf, katukina_02.pdf, pano_01.pdf, pano_02.pdf
-            • Translitere cada fala para **Katukina** e **Pano**, citando páginas dos PDFs. Use 10 páginas por vez em suas consultas. 
+            Pasta de dados: {base}
+            • Utilize TODOS os arquivos PDF presentes nesta pasta como referência.
+            • Translitere cada fala para todos os idiomas indígenas identificados (incluindo Katukina, Pano, Kulina, Marubo, Matses, etc.), citando páginas dos PDFs utilizados. Use até 10 páginas por vez em suas consultas.
             ───────────────────────────────────────────────────────────────────────────────
 
             Formato de ENTRADA (lista):
@@ -256,9 +256,15 @@ async def main():
                 \"ator\":      \"Cliente\",
                 \"portugues\": \"Olá, quero consultar meu saldo.\",
                 \"katukina\":  \"[TRANSLITERAÇÃO PARA KATUKINA]\",
-                \"fontes_katukina\": [\"katukina_01.pdf#p42\"],
+                \"fontes_katukina\": [\"nome_do_arquivo.pdf#p42\"],
                 \"pano\":      \"[TRANSLITERAÇÃO PARA PANO]\",
-                \"fontes_pano\": [\"pano_01.pdf#p17\", \"★\"]
+                \"fontes_pano\": [\"nome_do_arquivo.pdf#p17\", \"★\"],
+                \"kulina\":    \"[TRANSLITERAÇÃO PARA KULINA]\",
+                \"fontes_kulina\": [\"nome_do_arquivo.pdf#p23\"],
+                \"marubo\":    \"[TRANSLITERAÇÃO PARA MARUBO]\",
+                \"fontes_marubo\": [\"nome_do_arquivo.pdf#p8\"],
+                \"matses\":    \"[TRANSLITERAÇÃO PARA MATSES]\",
+                \"fontes_matses\": [\"nome_do_arquivo.pdf#p15\"]
             }},
             [...OUTROS ITENS DA AVALIAÇÃO]
             ]
@@ -266,7 +272,7 @@ async def main():
             ⚠︎ Entregue **somente** este objeto JSON. **JAMAIS inclua marcadores de markdown na saída**.
             """
         }),
-        description="Traduz as falas PT-BR usando os PDFs e cita as fontes."
+        description="Traduz as falas PT-BR usando todos os PDFs da pasta e cita as fontes para Katukina, Pano, Kulina, Marubo e Matses."
     )
 
     reviewer_agent = Agent(
@@ -280,34 +286,34 @@ async def main():
             Você é um expert em avaliar traduções.
             Você receberá um conjunto de diálogos traduzidos e deve consultar as fontes disponíveis para validar a qualidade.
             Sempre inclua comentários claros e objetivos sobre cada avaliação.
-            Você receberá pdfs que informam a fonética das línguas Katukina e Pano.
+            Você receberá PDFs que informam a fonética de todos os idiomas indígenas disponíveis na pasta de dados (por exemplo, Katukina, Pano, Kulina, Marubo, Matses e outros).
             Você deve verificar a precisão das traduções, a fluência do texto e se as fontes foram corretamente citadas.
-            Se a tradução estiver correta, retorne \"OK\". Se precisar de ajustes, retorne \"Ajustar\" e forneça uma justificativa clara.
+            Se a tradução estiver correta, retorne "OK". Se precisar de ajustes, retorne "Ajustar" e forneça uma justificativa clara.
             Utilize os PDFs para verificar se a composição de palavras nos textos traduzidos segue a estrutura fonética apresentada nos PDFs.
             ───────────────────────────────────────────────────────────────────────────────
             {BASE_PROMPT}
             ───────────────────────────────────────────────────────────────────────────────
-            • Você tem à sua disposição os seguintes PDFs linguísticos: katukina_01.pdf, katukina_02.pdf, pano_01.pdf, pano_02.pdf
-            • Translitere cada fala para **Katukina** e **Pano**, citando páginas dos PDFs. Use 10 páginas por vez em suas consultas. 
+            • Utilize todos os PDFs linguísticos disponíveis na pasta de dados como referência; não liste nomes específicos.
+            • Verifique a precisão das transliterações para cada idioma indígena identificado (incluindo Katukina, Pano, Kulina, Marubo, Matses, etc.).
             ───────────────────────────────────────────────────────────────────────────────
             Saída (objeto JSON):
             {{
-            \"avaliacoes\": [
+            "avaliacoes": [
                 {{
-                \"id\": \"1.1\",
-                \"status\": \"OK\" (CASO ESTRUTURA FONÉTICA ESTEJA COMPATÍVEL) | \"Ajustar\" (CASO CONTRÁRIO),
-                \"comentario\": \"Razão ou sugestão clara dos pontos de ajuste fonéticos\"
+                "id": "1.1",
+                "status": "OK" (CASO ESTRUTURA FONÉTICA ESTEJA COMPATÍVEL) | "Ajustar" (CASO CONTRÁRIO),
+                "comentario": "Razão ou sugestão clara dos pontos de ajuste fonéticos"
                 }},
                 [...OUTROS ITENS DA AVALIAÇÃO]
             ],
-            \"acao_recomendada\": \"aprovado\" | \"reexecutar\",
-            \"score_global\": 0-100 (0=baixa aderência à composição fonética, 100=perfeita aderência à composição fonética da língua)
+            "acao_recomendada": "aprovado" | "reexecutar",
+            "score_global": 0-100 (0=baixa aderência à composição fonética, 100=perfeita aderência à composição fonética da língua)
             }}
 
             ⚠︎ Entregue **somente** este objeto JSON. **JAMAIS inclua marcadores de markdown na saída**.
             """
         }),
-        description="Revê traduções e validacoes"
+        description="Revê traduções e validações para todos os idiomas indígenas disponíveis."
     )
 
     async with orchestrator:

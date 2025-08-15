@@ -11,7 +11,7 @@ from semantic_kernel.contents import ChatMessageContent, ChatHistory, AuthorRole
 
 from app.schemas.models import Agent, Assembly
 from app.agents.main import ToolerOrchestrator
-from .prompts import BASE_PROMPT, DIALOGUE_AGENT_PROMPT, TRANSLATOR_AGENT_PROMPT, REVIEWER_AGENT_PROMPT
+from app.cases.prompts import BASE_PROMPT, DIALOGUE_AGENT_PROMPT, TRANSLATOR_AGENT_PROMPT, REVIEWER_AGENT_PROMPT
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
@@ -35,7 +35,6 @@ class TransliterationChatManager(GroupChatManager):
         Returns:
             MessageResult: A result object containing the composed transliteration and review as JSON.
         """
-        # Extrai transliteração e avaliação do histórico
         translit = None
         review = None
         for msg in reversed(chat_history.messages):
@@ -71,7 +70,6 @@ class TransliterationChatManager(GroupChatManager):
         Returns:
             BooleanResult: True if the process should terminate, False otherwise.
         """
-        # Procura score_global e acao_recomendada na última avaliação
         for msg in reversed(chat_history.messages):
             content = getattr(msg, 'content', '')
             last_agent = getattr(msg, 'name', 'User')
@@ -95,7 +93,6 @@ class TransliterationChatManager(GroupChatManager):
         Returns:
             BooleanResult: Always False for this implementation.
         """
-        # Nunca solicita input do usuário durante o ciclo automático
         return BooleanResult(result=False, reason="Ciclo automático, sem input do usuário.")
 
     async def select_next_agent(self, chat_history: ChatHistory, participant_descriptions: dict[str, str]) -> StringResult:
@@ -109,18 +106,15 @@ class TransliterationChatManager(GroupChatManager):
             StringResult: The name of the next agent to act.
         """
         agents = list(participant_descriptions.keys())
-        # Se não há mensagens de agentes ainda (apenas user), começa com transliteração
         if not chat_history.messages or (
             len(chat_history.messages) == 1 and chat_history.messages[0].role == AuthorRole.USER
         ):
             return StringResult(result=agents[0], reason="Primeira rodada: transliteração.")
-        # Determina se o último respondente foi o reviewer pelo conteúdo
         last_msg = chat_history.messages[-1]
         last_agent = getattr(last_msg, 'name', '')
         is_reviewer = False
         if "TranslationReviewerAgent" in last_agent:
             is_reviewer = True
-        # Busca pelo score na última avaliação
         score = None
         aprovacao = "reexecutar"
         if is_reviewer:
@@ -133,8 +127,8 @@ class TransliterationChatManager(GroupChatManager):
             if score is not None and score < 90 or aprovacao == "reexecutar":
                 return StringResult(result=agents[0], reason=last_msg.content)
             return StringResult(result=agents[0], reason="Score suficiente, transliteração final.")
-        # Se não foi reviewer, alterna para o avaliador
         return StringResult(result=agents[1], reason="Alterna para avaliador.")
+
 
 class Orchestrator(ToolerOrchestrator):
     """
@@ -172,19 +166,25 @@ class Orchestrator(ToolerOrchestrator):
             ValueError: If no valid JSON is found in the text.
         """
         text = self.clean_json_output(text)
-        # Regex para encontrar o maior bloco JSON
         matches = re.findall(r'\{[\s\S]*\}|\[[\s\S]*\]', text)
         for match in matches:
             try:
                 return json.loads(match)
             except Exception:
                 continue
-        # fallback: tenta o texto inteiro
         try:
             return json.loads(text)
         except Exception:
             pass
         raise ValueError("Nenhum JSON válido encontrado no output.")
+
+    def list_reference_pdfs(self):
+        """
+        Retorna a lista de nomes dos arquivos PDF disponíveis na pasta de dados de referência.
+        """
+        from pathlib import Path
+        data_dir = Path(__file__).parent / 'data' / 'translation'
+        return [p.name for p in data_dir.glob('*.pdf')]
 
     def build_translator_prompt(self, dialogo, feedback=None, translit_anterior=None):
         """
@@ -197,10 +197,23 @@ class Orchestrator(ToolerOrchestrator):
         Returns:
             str: The constructed prompt as a JSON string.
         """
+        # lista dinâmica de arquivos de referência
+        pdf_list = self.list_reference_pdfs()
+        pdfs = ", ".join(pdf_list)
         base_prompt = {
             "json_object": True,
             "prompt": f"""
-            Você é um tradutor especializado em línguas indígenas. Você receberá diálogos em português e deve traduzi-los para Katukina e Pano, utilizando os pdfs disponíveis para referência. Os PDFs são conjuntos de texto que oferecem uma indicação da fonética da língua, mas não indicam a gramática. Você deve citar as fontes de cada tradução, incluindo a página do PDF consultado.\n\nFormate a resposta como JSON puro.\n\nSe houver feedback do avaliador, implemente as recomendações explicitamente, não repita a resposta anterior.\n\n{BASE_PROMPT}"""
+                Você é um tradutor especializado em línguas indígenas.
+                Você receberá diálogos em português e deve traduzi-los para todos os idiomas nativos identificados nos arquivos PDF disponíveis na pasta de dados.
+                Liste os seguintes arquivos PDF de referência: {pdfs}.
+                Utilize-os para citar as fontes de cada tradução, incluindo a página do PDF consultado. Considere todas as páginas do documento, limitando a extração de 10 em 10 páginas por vez.
+
+                Formate a resposta como JSON puro.
+
+                Se houver feedback do avaliador, implemente as recomendações explicitamente, não repita a resposta anterior.
+
+                {BASE_PROMPT}
+            """
         }
         if feedback:
             base_prompt["feedback_anterior"] = feedback
@@ -272,7 +285,7 @@ class Orchestrator(ToolerOrchestrator):
             prompt="generate dialogues",
             strategy="sequential"
         )
-        dialogues_path = Path(__file__).parent / "dialogues.json"
+        dialogues_path = SRC / "dialogues.json"
         dialogues_json = self.extract_json(dialogues.content)
         with open(dialogues_path, "w", encoding="utf-8") as f:
             json.dump(dialogues_json, f, ensure_ascii=False, indent=2)
@@ -316,8 +329,14 @@ class Orchestrator(ToolerOrchestrator):
                 out_file = translit_dir / f"transliteration_{convo_id}.txt"
                 try:
                     result_json = self.extract_json(result.content)
+                    # Write review to evaluations.txt if present
                     if "review" in result_json and result_json["review"]:
                         last_feedback = result_json["review"]
+                        # Append review JSON to evaluations.txt
+                        eval_file = translit_dir / "evaluations.txt"
+                        with open(eval_file, "a", encoding="utf-8") as ef:
+                            ef.write(json.dumps(last_feedback, ensure_ascii=False))
+                            ef.write("\n")
                     if "transliteration" in result_json and result_json["transliteration"]:
                         last_translit = result_json["transliteration"]
                     with open(out_file, "w", encoding="utf-8") as f:

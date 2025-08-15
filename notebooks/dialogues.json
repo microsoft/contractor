@@ -1,0 +1,122 @@
+[
+  {
+    "id": "1.1",
+    "ator": "Cliente",
+    "fala": "Olá, quero acessar minha conta com CPF e autenticação por biometria."
+  },
+  {
+    "id": "1.2",
+    "ator": "Cliente",
+    "fala": "Oi, quero entrar na minha conta utilizando CPF e senha."
+  },
+  {
+    "id": "1.3",
+    "ator": "Cliente",
+    "fala": "Não tenho CPF nem senha no momento. Posso acessar mesmo assim?"
+  },
+  {
+    "id": "2",
+    "ator": "Cliente",
+    "fala": "Gostaria de consultar o saldo da minha conta."
+  },
+  {
+    "id": "4.4",
+    "ator": "Cliente",
+    "fala": "Preciso trocar a minha senha. Como faço isso?"
+  },
+  {
+    "id": "5",
+    "ator": "Cliente",
+    "fala": "Estou tendo problemas. Podem me atender remotamente?"
+  },
+  {
+    "id": "6",
+    "ator": "Cliente",
+    "fala": "Preciso digitalizar alguns documentos. Existe essa funcionalidade?"
+  },
+  {
+    "id": "1",
+    "ator": "Gerente",
+    "fala": "Preciso fazer o login no sistema. Pode me ajudar?"
+  },
+  {
+    "id": "2",
+    "ator": "Gerente",
+    "fala": "Quero verificar meu status de disponibilidade."
+  },
+  {
+    "id": "3",
+    "ator": "Gerente",
+    "fala": "Recebi uma ligação. Como faço para atender de forma segura?"
+  },
+  {
+    "id": "4",
+    "ator": "Gerente",
+    "fala": "Gostaria de receber a documentação enviada pelo cliente."
+  },
+  {
+    "id": "5",
+    "ator": "Gerente",
+    "fala": "Preciso alterar minha senha. Qual é o procedimento?"
+  },
+  {
+    "id": "1",
+    "ator": "Anjalina Matis",
+    "fala": "Depois de navegar por 3 dias, finalmente estou chegando ao Brasil."
+  },
+  {
+    "id": "2",
+    "ator": "Anjalina Matis",
+    "fala": "Cheguei em Atalaia! Que bom estar em um lugar seguro."
+  },
+  {
+    "id": "3",
+    "ator": "Anjalina Matis",
+    "fala": "Obrigada por me receber e falar no meu idioma. Isso ajuda muito."
+  },
+  {
+    "id": "4",
+    "ator": "Anjalina Matis",
+    "fala": "Ah, um terminal de autoatendimento! Muito interessante."
+  },
+  {
+    "id": "5",
+    "ator": "Anjalina Matis",
+    "fala": "Ok, farei a identificação biométrica agora."
+  },
+  {
+    "id": "6",
+    "ator": "Anjalina Matis",
+    "fala": "O sistema está identificando as minhas demandas automaticamente. Que prático!"
+  },
+  {
+    "id": "7",
+    "ator": "Anjalina Matis",
+    "fala": "Perdi meu cartão. Vocês podem me fornecer um novo?"
+  },
+  {
+    "id": "8",
+    "ator": "Anjalina Matis",
+    "fala": "A tradução simultânea está facilitando muito a minha comunicação aqui."
+  },
+  {
+    "id": "9",
+    "ator": "Anjalina Matis",
+    "fala": "Gostaria de verificar as opções de serviços automatizados, por favor."
+  },
+  {
+    "id": "10",
+    "ator": "Anjalina Matis",
+    "fala": "Prefiro falar diretamente com o gerente neste caso. É possível?"
+  },
+  {
+    "id": "11",
+    "ator": "Anjalina Matis",
+    "fala": "Preciso atualizar meu cadastro e também gostaria de trocar a senha."
+  },
+  {
+    "id": "12",
+    "ator": "Gerente",
+    "fala": "Vamos resolver sua situação com a ajuda da inteligência artificial para ter uma tradução eficiente."
+  }
+]

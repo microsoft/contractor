@@ -1,0 +1,122 @@
+[
+  {
+    "id": "1.1",
+    "ator": "Cliente",
+    "fala": "Olá, quero acessar minha conta. Estou utilizando CPF e biometria."
+  },
+  {
+    "id": "1.2",
+    "ator": "Cliente",
+    "fala": "Olá, quero acessar minha conta. Estou utilizando CPF e senha."
+  },
+  {
+    "id": "1.3",
+    "ator": "Cliente",
+    "fala": "Olá, quero acessar minha conta, mas não tenho CPF ou senha."
+  },
+  {
+    "id": "2",
+    "ator": "Cliente",
+    "fala": "Gostaria de consultar meu saldo, por favor."
+  },
+  {
+    "id": "4.4",
+    "ator": "Cliente",
+    "fala": "Preciso trocar minha senha, como faço?"
+  },
+  {
+    "id": "5",
+    "ator": "Cliente",
+    "fala": "Preciso de atendimento remoto, alguém pode me ajudar?"
+  },
+  {
+    "id": "6",
+    "ator": "Cliente",
+    "fala": "Gostaria de escanear alguns documentos, isso é possível?"
+  },
+  {
+    "id": "1",
+    "ator": "Gerente",
+    "fala": "Olá, estou realizando o login no sistema."
+  },
+  {
+    "id": "2",
+    "ator": "Gerente",
+    "fala": "Estou atualizando meu status de disponibilidade para atender chamadas."
+  },
+  {
+    "id": "3",
+    "ator": "Gerente",
+    "fala": "Recebi uma ligação e estou iniciando o atendimento agora."
+  },
+  {
+    "id": "4",
+    "ator": "Gerente",
+    "fala": "Recebi uma documentação e estou revisando os dados enviados."
+  },
+  {
+    "id": "5",
+    "ator": "Gerente",
+    "fala": "Estou alterando minha senha por uma questão de segurança."
+  },
+  {
+    "id": "1",
+    "ator": "Narrador",
+    "fala": "Anjalina embarcou em uma viagem marítima que durou três dias até o Brasil."
+  },
+  {
+    "id": "2",
+    "ator": "Narrador",
+    "fala": "Anjalina chegou ao centro de acolhida em Atalaia, Alagoas."
+  },
+  {
+    "id": "3",
+    "ator": "Narrador",
+    "fala": "Ela foi recebida por um atendente local que fala o idioma dela."
+  },
+  {
+    "id": "4",
+    "ator": "Narrador",
+    "fala": "Anjalina foi encaminhada a um terminal de autoatendimento."
+  },
+  {
+    "id": "5",
+    "ator": "Narrador",
+    "fala": "Sua biometria foi coletada para comprovar sua identidade."
+  },
+  {
+    "id": "6",
+    "ator": "Narrador",
+    "fala": "Um sistema de inteligência artificial identificou e priorizou as necessidades de Anjalina."
+  },
+  {
+    "id": "7",
+    "ator": "Narrador",
+    "fala": "Anjalina relatou a perda do cartão, e um novo cartão foi gerado e entregue a ela."
+  },
+  {
+    "id": "8",
+    "ator": "Narrador",
+    "fala": "O sistema de tradução garantiu uma comunicação clara durante o atendimento."
+  },
+  {
+    "id": "9",
+    "ator": "Narrador",
+    "fala": "Houve uma checagem automática dos serviços disponíveis, como saldo e benefícios."
+  },
+  {
+    "id": "10",
+    "ator": "Narrador",
+    "fala": "Anjalina escolheu entre resolver sua demanda automaticamente ou falar com o gerente."
+  },
+  {
+    "id": "11",
+    "ator": "Narrador",
+    "fala": "Ela atualizou seus dados cadastrais e realizou a troca de senha no terminal."
+  },
+  {
+    "id": "12",
+    "ator": "Narrador",
+    "fala": "Com suporte de IA, o gerente conduziu o atendimento utilizando tradução simultânea."
+  }
+]

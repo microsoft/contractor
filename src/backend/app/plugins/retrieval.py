@@ -394,6 +394,27 @@ class PDFLoader:
     Loads PDF files and extracts text content using pypdf.
     """
     @kernel_function(
+        name="list_pdf_files",
+        description="Lists all PDF files in the specified directory."
+    )
+    def list_pdfs(self, folder: str) -> List[str]:
+        """
+        Lists all PDF files in a given directory.
+
+        Args:
+            folder (str): Path to the directory.
+
+        Returns:
+            List[str]: A list of file paths for PDF files found in the directory.
+        """
+        try:
+            pdf_files = glob.glob(os.path.join(folder, "*.pdf"))
+            return pdf_files
+        except Exception as e:
+            logger.error("Error listing PDF files in %s: %s", folder, str(e))
+            return []
+
+    @kernel_function(
         name="load_pdf_files",
         description="Loads a PDF file and extracts text from a range of pages with optional offset."
     )
