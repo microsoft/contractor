@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "5.1",
+    "ator": "Cliente",
+    "fala": "Preciso de atendimento remoto."
+  },
+  "transliteracao": [
+    {
+      "id": "5.1",
+      "ator": "Cliente",
+      "portugues": "Preciso de atendimento remoto.",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

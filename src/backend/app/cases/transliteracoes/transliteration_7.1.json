@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "7.1",
+    "ator": "Narrador",
+    "fala": "Anjalina Matis embarca em uma viagem de três dias até o Brasil."
+  },
+  "transliteracao": [
+    {
+      "id": "7.1",
+      "ator": "Narrador",
+      "portugues": "Anjalina Matis embarca em uma viagem de três dias até o Brasil.",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

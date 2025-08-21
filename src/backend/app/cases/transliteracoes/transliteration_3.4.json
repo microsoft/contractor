@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "3.4",
+    "ator": "Sistema",
+    "fala": "Status atualizado para disponível. Apoio remoto ativado."
+  },
+  "transliteracao": [
+    {
+      "id": "3.4",
+      "ator": "Sistema",
+      "portugues": "Status atualizado para disponível. Apoio remoto ativado.",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

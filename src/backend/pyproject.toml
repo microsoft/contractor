@@ -31,7 +31,7 @@ pypdf = {extras = ["crypto"], version = "^5.4.0"}
 pyrit = "^0.9.0"
 azure-ai-projects = "^1.0.0"
 openai = "^1.99.9"
-azure-ai-inference = "^1.0.0"
+azure-ai-inference = "^1.0.0b9"
 
 
 [tool.poetry.group.dev.dependencies]

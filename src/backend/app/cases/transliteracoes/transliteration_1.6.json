@@ -1,0 +1,35 @@
+{
+  "dialogo": {
+    "id": "1.6",
+    "ator": "Sistema",
+    "fala": "Sem problemas! Podes usar nossas funcionalidades de tradução, comunicação visual adaptada e IA para te ajudar durante o acesso."
+  },
+  "transliteracao": [
+    {
+      "id": "1.6",
+      "ator": "Sistema",
+      "portugues": "Sem problemas! Podes usar nossas funcionalidades de tradução, comunicação visual adaptada e IA para te ajudar durante o acesso.",
+      "matses": "[TRADUÇÃO_INDEFINIDA]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "fallback"
+    }
+  ],
+  "review": {
+    "avaliacoes": [
+      {
+        "id": "1.6",
+        "status": "OK",
+        "comentario": "A saída adota corretamente a estratégia de sinalizar a ausência de base referencial, evitando a invenção de formas não fundamentadas. A marcação 'sem_fonte: true' e a observação explicativa garantem transparência quanto à limitação de evidências para gerar uma expressão autêntica em matses.",
+        "ajustes_sugeridos": [],
+        "consistencia_fonte": 90,
+        "confianca_fonetica": 70
+      }
+    ],
+    "acao_recomendada": "aprovado",
+    "score_global": 80,
+    "riscos": [
+      "Ausência de referências explícitas limita a adequação fonológica e morfológica da tradução."
+    ]
+  }
+}

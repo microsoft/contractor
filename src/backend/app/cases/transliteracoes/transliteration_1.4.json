@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "1.4",
+    "ator": "Sistema",
+    "fala": "Tudo bem, por favor, insira sua senha. Contamos com comunicação visual adaptada e interação com IA para melhor experiência."
+  },
+  "transliteracao": [
+    {
+      "id": "1.4",
+      "ator": "Sistema",
+      "portugues": "Tudo bem, por favor, insira sua senha. Contamos com comunicação visual adaptada e interação com IA para melhor experiência.",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

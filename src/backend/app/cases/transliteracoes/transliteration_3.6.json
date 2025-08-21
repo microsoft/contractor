@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "3.6",
+    "ator": "Sistema",
+    "fala": "Encaminhando ligação. Ferramentas de segurança prontas para suporte."
+  },
+  "transliteracao": [
+    {
+      "id": "3.6",
+      "ator": "Sistema",
+      "portugues": "Encaminhando ligação. Ferramentas de segurança prontas para suporte.",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

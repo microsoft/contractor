@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "1.5",
+    "ator": "Cliente",
+    "fala": "Não tenho CPF nem senha. Como faço para acessar minha conta?"
+  },
+  "transliteracao": [
+    {
+      "id": "1.5",
+      "ator": "Cliente",
+      "portugues": "Não tenho CPF nem senha. Como faço para acessar minha conta?",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

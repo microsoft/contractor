@@ -198,6 +198,7 @@ class AzureAISearchTool:
             credential=AzureKeyCredential(self.key)
         )
 
+    @kernel_function(name="search_index", description="Executa uma busca no índice Azure AI Search e retorna documentos relevantes")
     def search(self, query: str) -> List[Dict[str, Any]]:
         """
         Execute a search query against the Azure AI Search index.
@@ -209,10 +210,19 @@ class AzureAISearchTool:
             List[Dict[str, Any]]: A list of search result documents.
         """
         try:
-            results = self.search_client.search(search_text=query)
+            results = self.search_client.search(search_text=query, top=8)
             output = []
             for result in results:
-                output.append(result)
+                try:
+                    output.append({
+                        "file_name": getattr(result, "file_name", None),
+                        "page_number": getattr(result, "page_number", None),
+                        "topic": getattr(result, "topic", None),
+                        "language_concept": getattr(result, "language_concept", None),
+                        "snippet": (getattr(result, "chunk", "") or "")[:400]
+                    })
+                except Exception:  # pragma: no cover
+                    continue
             return output
         except Exception as e:
             logger.error(f"Error performing Azure AI Search: {str(e)}")

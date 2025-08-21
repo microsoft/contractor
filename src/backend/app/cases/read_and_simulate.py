@@ -1,365 +1,828 @@
-import io
-import sys
-import asyncio
-import json
-import re
+"""Transliteration / generation pipeline (clean implementation).
+
+Features:
+- Dialogue generation (Portuguese) via Dialogue agent.
+- Translator & Reviewer agents (groupchat or manual loop).
+- Evidence prefetch through AzureAISearchTool (heuristic multi-query).
+- Multi-language aggregation when TARGET_IDIOMAS provided.
+- Always uses groupchat when ORCHESTRATION_MODE=groupchat (single or multi).
+"""
+
+from __future__ import annotations
+
+import os, re, json, asyncio, logging, random
 from pathlib import Path
+from typing import Any, Dict, List, Tuple, Optional
 
+import semantic_kernel as sk
 from dotenv import load_dotenv
-from semantic_kernel.agents import GroupChatManager, BooleanResult, MessageResult, StringResult  # pylint: disable=no-name-in-module
-from semantic_kernel.contents import ChatMessageContent, ChatHistory, AuthorRole
+from semantic_kernel.agents import ChatCompletionAgent  # pylint: disable=no-name-in-module
+from semantic_kernel.agents.orchestration.group_chat import (
+    GroupChatOrchestration, RoundRobinGroupChatManager, BooleanResult, StringResult, MessageResult
+)  # type: ignore
+from semantic_kernel.agents.runtime.in_process.in_process_runtime import InProcessRuntime  # type: ignore
+from semantic_kernel.connectors.ai import FunctionChoiceBehavior
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from semantic_kernel.connectors.ai.open_ai.exceptions.content_filter_ai_exception import ContentFilterAIException
 
-from app.schemas.models import Agent, Assembly
-from app.agents.main import ToolerOrchestrator
-from app.cases.prompts import BASE_PROMPT, DIALOGUE_AGENT_PROMPT, TRANSLATOR_AGENT_PROMPT, REVIEWER_AGENT_PROMPT
+from semantic_kernel.contents import ChatHistory, ChatMessageContent, AuthorRole
+from semantic_kernel.functions.kernel_arguments import KernelArguments
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
+from app.plugins import PDFLoader, search_plugin
+from app.cases.prompts import (
+    BASE_PROMPT_TEMPLATE, DIALOGUE_AGENT_PROMPT_TEMPLATE, TRANSLATOR_AGENT_PROMPT_TEMPLATE, REVIEWER_AGENT_PROMPT_TEMPLATE, render_prompt
+)
 
+load_dotenv()
 ROOT = Path(__file__).resolve().parents[4]
-SRC = ROOT / 'src/backend'
-sys.path.append(str(SRC))
+SRC = ROOT / "src" / "backend"
+
+LOG_LEVEL = getattr(logging, os.getenv("TRANSLIT_LOG_LEVEL", "INFO").upper(), logging.INFO)
+logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logger = logging.getLogger("transliteration")
 
 
-class TransliterationChatManager(GroupChatManager):
-    """
-    Manages the group chat flow for the transliteration and review process.
-    This custom manager coordinates the interaction between translation and review agents,
-    determines when to terminate the chat, and selects the next agent to act based on the chat history.
-    """
-    async def filter_results(self, chat_history: ChatHistory) -> MessageResult:
-        """
-        Extracts the latest transliteration and review results from the chat history and composes a combined response.
-
-        Args:
-            chat_history (ChatHistory): The chat history containing all messages exchanged.
-        Returns:
-            MessageResult: A result object containing the composed transliteration and review as JSON.
-        """
-        translit = None
-        review = None
-        for msg in reversed(chat_history.messages):
-            content = getattr(msg, 'content', '')
-            last_agent = getattr(msg, 'name', '')
-            if last_agent and "TranslationReviewerAgent" in last_agent and review is None:
-                try:
-                    review = json.loads(content)
-                except Exception:
-                    continue
-            elif last_agent and "TermExtractorTranslatorAgent" in last_agent and translit is None:
-                try:
-                    translit = json.loads(content)
-                except Exception:
-                    continue
-            if translit and review:
-                break
-        response = {
-            "transliteration": translit,
-            "review": review
-        }
-        return MessageResult(
-            result=ChatMessageContent(role=AuthorRole.ASSISTANT, content=json.dumps(response, ensure_ascii=False, indent=2)),
-            reason="Composed transliteration and review."
+def build_kernel() -> sk.Kernel:
+    api_key = os.getenv("AZURE_FOUNDRY_KEY", "") or os.getenv("AZURE_OPENAI_API_KEY", "")
+    endpoint = os.getenv("AZURE_FOUNDRY_URL", "") or os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    kernel = sk.Kernel()
+    for sid, dep in (
+        ("default", os.getenv("AZURE_DIALOGUE_DEPLOYMENT", "contractor-4o")),
+        ("gpt-5-mini", os.getenv("AZURE_TRANSLATOR_DEPLOYMENT", "gpt-5-mini")),
+        ("reasoning", os.getenv("AZURE_REVIEW_DEPLOYMENT", "o3-mini")),
+    ):
+        kernel.add_service(
+            AzureChatCompletion(
+                service_id=sid,
+                api_key=api_key,
+                deployment_name=dep,
+                endpoint=endpoint,
+                api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
+            )
         )
-
-    async def should_terminate(self, chat_history: ChatHistory) -> BooleanResult:
-        """
-        Determines whether the group chat should terminate based on the latest review score or approval status.
-
-        Args:
-            chat_history (ChatHistory): The chat history containing all messages exchanged.
-        Returns:
-            BooleanResult: True if the process should terminate, False otherwise.
-        """
-        for msg in reversed(chat_history.messages):
-            content = getattr(msg, 'content', '')
-            last_agent = getattr(msg, 'name', 'User')
-            if last_agent and "TranslationReviewerAgent" in last_agent:
-                try:
-                    review = json.loads(content)
-                    score = review.get("score_global", 0)
-                    acao = review.get("acao_recomendada", "")
-                    if score >= 80 or acao == "aprovado":
-                        return BooleanResult(result=True, reason=f"Score {score} e aprovado.")
-                except Exception:
-                    continue
-        return BooleanResult(result=False, reason="Score ou aprovação ainda não atingidos.")
-
-    async def should_request_user_input(self, chat_history: ChatHistory) -> BooleanResult:
-        """
-        Indicates whether user input is required during the automatic cycle (always False for this pipeline).
-
-        Args:
-            chat_history (ChatHistory): The chat history containing all messages exchanged.
-        Returns:
-            BooleanResult: Always False for this implementation.
-        """
-        return BooleanResult(result=False, reason="Ciclo automático, sem input do usuário.")
-
-    async def select_next_agent(self, chat_history: ChatHistory, participant_descriptions: dict[str, str]) -> StringResult:
-        """
-        Selects the next agent to act in the group chat based on the last message and review status.
-
-        Args:
-            chat_history (ChatHistory): The chat history containing all messages exchanged.
-            participant_descriptions (dict): Mapping of agent names to their descriptions.
-        Returns:
-            StringResult: The name of the next agent to act.
-        """
-        agents = list(participant_descriptions.keys())
-        if not chat_history.messages or (
-            len(chat_history.messages) == 1 and chat_history.messages[0].role == AuthorRole.USER
-        ):
-            return StringResult(result=agents[0], reason="Primeira rodada: transliteração.")
-        last_msg = chat_history.messages[-1]
-        last_agent = getattr(last_msg, 'name', '')
-        is_reviewer = False
-        if "TranslationReviewerAgent" in last_agent:
-            is_reviewer = True
-        score = None
-        aprovacao = "reexecutar"
-        if is_reviewer:
-            try:
-                review = json.loads(last_msg.content)
-                aprovacao = review.get("acao_recomendada", "reexecutar")
-                score = review.get("score_global", 0)
-            except Exception:
-                pass
-            if score is not None and score < 90 or aprovacao == "reexecutar":
-                return StringResult(result=agents[0], reason=last_msg.content)
-            return StringResult(result=agents[0], reason="Score suficiente, transliteração final.")
-        return StringResult(result=agents[1], reason="Alterna para avaliador.")
+    for plugin in [PDFLoader(), *search_plugin]:
+        kernel.add_plugin(plugin, plugin.__class__.__name__)
+    return kernel
 
 
-class Orchestrator(ToolerOrchestrator):
-    """
-    Orchestrates the dialogue generation and transliteration pipeline for indigenous language translation.
-    Inherits from ToolerOrchestrator and encapsulates all orchestration logic, agent creation, and helper utilities.
-    """
-    def clean_json_output(self, text):
-        """
-        Removes markdown code block markers from model output, if present.
+def create_agent(kernel: sk.Kernel, name: str, description: str, model_id: str, prompt: str) -> ChatCompletionAgent:
+    settings = kernel.get_prompt_execution_settings_from_service_id(service_id=model_id)
+    settings.function_choice_behavior = FunctionChoiceBehavior.Auto()
+    return ChatCompletionAgent(
+        kernel=kernel,
+        name=name,
+        description=description,
+        instructions=prompt,
+        arguments=KernelArguments(settings=settings),
+    )
 
-        Args:
-            text (str): The text output from the model.
-        Returns:
-            str: The cleaned text without markdown code block markers.
-        """
-        text = text.strip()
-        if text.startswith('```json'):
-            text = text[7:]
-        if text.startswith('```'):
-            text = text[3:]
-        if text.endswith('```'):
-            text = text[:-3]
-        return text.strip()
 
-    def extract_json(self, text):
-        """
-        Extracts the largest valid JSON block from the given text.
-        Tries to find and parse a JSON object or array, falling back to the whole text if needed.
+JSON_BLOCK_RE = re.compile(r"(\{.*?\}|\[.*?\])", re.DOTALL)
 
-        Args:
-            text (str): The text to extract JSON from.
-        Returns:
-            dict or list: The parsed JSON object or array.
-        Raises:
-            ValueError: If no valid JSON is found in the text.
-        """
-        text = self.clean_json_output(text)
-        matches = re.findall(r'\{[\s\S]*\}|\[[\s\S]*\]', text)
-        for match in matches:
-            try:
-                return json.loads(match)
-            except Exception:
-                continue
+
+def extract_json(text: str) -> Any:
+    text = (text or "").strip()
+    if not text:
+        raise ValueError("Texto vazio")
+    if text[0] in "[{" and text[-1] in "]}":
         try:
             return json.loads(text)
-        except Exception:
+        except json.JSONDecodeError:
             pass
-        raise ValueError("Nenhum JSON válido encontrado no output.")
+    for m in JSON_BLOCK_RE.finditer(text):
+        try:
+            return json.loads(m.group(0))
+        except json.JSONDecodeError:
+            continue
+    raise ValueError("JSON não encontrado")
 
-    def list_reference_pdfs(self):
-        """
-        Retorna a lista de nomes dos arquivos PDF disponíveis na pasta de dados de referência.
-        """
-        from pathlib import Path
-        data_dir = Path(__file__).parent / 'data' / 'translation'
-        return [p.name for p in data_dir.glob('*.pdf')]
 
-    def build_translator_prompt(self, dialogo, feedback=None, translit_anterior=None):
-        """
-        Builds the prompt for the translator agent, optionally including feedback and previous transliteration.
+def extract_query_terms(portuguese_text: str, max_terms: int = 8) -> List[str]:
+    tokens = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]{4,}", (portuguese_text or "").lower())
+    stop = {
+        "para",
+        "como",
+        "onde",
+        "quando",
+        "sobre",
+        "entre",
+        "isso",
+        "dessa",
+        "deste",
+        "qual",
+        "cada",
+        "mais",
+        "menos",
+        "muito",
+        "pouco",
+        "preciso",
+        "acessar",
+        "conta",
+        "usando",
+        "biometria"
+    }
+    out: List[str] = []
+    for t in tokens:
+        if t in stop:
+            continue
+        if t not in out:
+            out.append(t)
+        if len(out) >= max_terms:
+            break
+    return out
 
-        Args:
-            dialogo (dict): The dialogue entry to be translated.
-            feedback (dict, optional): Feedback from the reviewer to be incorporated.
-            translit_anterior (dict, optional): Previous transliteration result.
-        Returns:
-            str: The constructed prompt as a JSON string.
-        """
-        # lista dinâmica de arquivos de referência
-        pdf_list = self.list_reference_pdfs()
-        pdfs = ", ".join(pdf_list)
-        base_prompt = {
-            "json_object": True,
-            "prompt": f"""
-                Você é um tradutor especializado em línguas indígenas.
-                Você receberá diálogos em português e deve traduzi-los para todos os idiomas nativos identificados nos arquivos PDF disponíveis na pasta de dados.
-                Liste os seguintes arquivos PDF de referência: {pdfs}.
-                Utilize-os para citar as fontes de cada tradução, incluindo a página do PDF consultado. Considere todas as páginas do documento, limitando a extração de 10 em 10 páginas por vez.
 
-                Formate a resposta como JSON puro.
+async def fetch_references(kernel: sk.Kernel, dialogue_entry: Dict[str, Any], idioma: str) -> List[Dict[str, Any]]:
+    fala = dialogue_entry.get("fala") or dialogue_entry.get("portugues") or ""
+    if not fala:
+        return []
+    terms = extract_query_terms(fala)
+    queries: List[str] = []
+    if terms:
+        queries.append(" ".join(terms[:5]))
+    for t in terms[:4]:
+        queries.append(f"{idioma} {t}")
+    for t in terms[:3]:
+        queries.append(t)
 
-                Se houver feedback do avaliador, implemente as recomendações explicitamente, não repita a resposta anterior.
-
-                {BASE_PROMPT}
-            """
-        }
-        if feedback:
-            base_prompt["feedback_anterior"] = feedback
-        if translit_anterior:
-            base_prompt["transliteracao_anterior"] = translit_anterior
-        base_prompt["dialogo"] = dialogo
-        base_prompt["instrucao"] = "Ajuste a transliteração conforme o feedback acima, mantendo as referências aos PDFs e justificativas."
-        return json.dumps(base_prompt, ensure_ascii=False)
-
-    def create_agents(self):
-        """
-        Creates and returns the dialogue, translator, and reviewer agent objects for the pipeline.
-
-        Returns:
-            tuple: (dialogue_agent, translator_agent, reviewer_agent)
-        """
-        dialogue_agent = Agent(
-            id=1,
-            name="DialogueCreatorAgent",
-            model_id="default",
-            objective="text",
-            metaprompt=json.dumps({
-                "json_object": True,
-                "prompt": DIALOGUE_AGENT_PROMPT
-            }),
-            description="Gera as falas em português a partir dos cases/jornada."
-        )
-        translator_agent = Agent(
-            id=2,
-            name="TermExtractorTranslatorAgent",
-            model_id="quatroum",
-            objective="text",
-            metaprompt=json.dumps({
-                "json_object": True,
-                "prompt": TRANSLATOR_AGENT_PROMPT
-            }),
-            description="Traduz as falas PT-BR usando os PDFs e cita as fontes."
-        )
-        reviewer_agent = Agent(
-            id=3,
-            name="TranslationReviewerAgent",
-            model_id="reasoning",
-            objective="text",
-            metaprompt=json.dumps({
-                "json_object": True,
-                "prompt": REVIEWER_AGENT_PROMPT
-            }),
-            description="Revê traduções e validacoes"
-        )
-        return dialogue_agent, translator_agent, reviewer_agent
-
-    async def generate_dialogues(self, dialogue_agent):
-        """
-        Generates dialogues using the provided dialogue agent and saves them to a file.
-
-        Args:
-            dialogue_agent (Agent): The agent responsible for generating dialogues.
-        Returns:
-            list: The list of generated dialogue entries (parsed from JSON).
-        """
-        assembly1 = Assembly(
-            id=1,
-            objective="dialogue_generation",
-            agents=[dialogue_agent],
-            roles=["DialogueCreator"]
-        )
-        dialogues = await self.invoke(
-            assembly=assembly1,
-            prompt="generate dialogues",
-            strategy="sequential"
-        )
-        dialogues_path = SRC / "dialogues.json"
-        dialogues_json = self.extract_json(dialogues.content)
-        with open(dialogues_path, "w", encoding="utf-8") as f:
-            json.dump(dialogues_json, f, ensure_ascii=False, indent=2)
-        print(f"Saved dialogues to {dialogues_path}")
-        return dialogues_json
-
-    async def run_transliteration_pipeline(self, dialogues_json, translator_agent, reviewer_agent):
-        """
-        Runs the transliteration and review pipeline for each dialogue entry, saving results to files.
-
-        Args:
-            dialogues_json (list): The list of dialogue entries to process.
-            translator_agent (Agent): The agent responsible for transliteration.
-            reviewer_agent (Agent): The agent responsible for reviewing translations.
-        """
-        translit_dir = Path(__file__).parent / "transliteracoes"
-        translit_dir.mkdir(exist_ok=True)
-        for entry in dialogues_json:
-            assembly2 = Assembly(
-                id=2,
-                objective="transliteration",
-                agents=[translator_agent, reviewer_agent],
-                roles=["Translation", "Review"]
+    seen: set[str] = set()
+    ordered: List[str] = []
+    for q in queries:
+        if q in seen:
+            continue
+        seen.add(q)
+        ordered.append(q)
+    refs: List[Dict[str, Any]] = []
+    keyed = set()
+    for q in ordered:
+        try:
+            result = await kernel.invoke(
+                function_name="search_index",
+                plugin_name="AzureAISearchTool",
+                arguments=KernelArguments(query=q),
             )
-            max_attempts = 3
-            last_feedback = None
-            last_translit = None
-            for attempt in range(max_attempts):
-                if attempt > 0 and last_feedback and last_translit:
-                    translator_prompt = self.build_translator_prompt(entry, feedback=last_feedback, translit_anterior=last_translit)
-                else:
-                    translator_prompt = self.build_translator_prompt(entry)
-                result = await self.invoke(
-                    assembly=assembly2,
-                    prompt=translator_prompt,
-                    strategy="group",
-                    max_rounds=7,
-                    manager=TransliterationChatManager(max_rounds=7)
+        except (ValueError, RuntimeError) as e:  # narrowed expected invocation failures
+            logger.debug("search falhou query=%s err=%s", q, e)
+            continue
+        items = getattr(result, "value", result)
+        if isinstance(items, list):
+            for doc in items:
+                key = (doc.get("file_name"), doc.get("page_number"))
+                if key not in keyed:
+                    keyed.add(key)
+                    refs.append(doc)
+        if len(refs) >= 15:
+            break
+    return refs[:15]
+
+
+async def generate_dialogues(kernel: sk.Kernel, idioma: str) -> List[Dict[str, Any]]:
+    scenarios_dir = ROOT / "notebooks" / "data" / "translation"
+    case_files = ["case_01.json", "case_02.json", "case_03.json"]
+    cases_content: Dict[str, Any] = {}
+    for fname in case_files:
+        fp = scenarios_dir / fname
+        if fp.exists():
+            try:
+                with open(fp, "r", encoding="utf-8") as f:
+                    cases_content[fname] = json.load(f)
+            except (OSError, json.JSONDecodeError) as e:
+                logger.warning("Falha lendo %s: %s", fname, e)
+    jornada_content = None
+    jf = scenarios_dir / "jornada.json"
+    if jf.exists():
+        try:
+            with open(jf, "r", encoding="utf-8") as f:
+                jornada_content = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            logger.warning("Falha lendo jornada.json: %s", e)
+    prompt = render_prompt(
+        DIALOGUE_AGENT_PROMPT_TEMPLATE,
+        base_prompt=render_prompt(BASE_PROMPT_TEMPLATE, base=str(scenarios_dir), idioma=idioma),
+        idioma=idioma,
+    )
+    agent = create_agent(kernel, "DialogueCreatorAgent", "Gera falas", "default", prompt)
+    payload = {
+        "json_object": True,
+        "instrucao": "Gerar falas",
+        "cases": cases_content,
+        "jornada": jornada_content,
+    }
+    hist = ChatHistory()
+    hist.add_message(ChatMessageContent(role=AuthorRole.USER, content=json.dumps(payload, ensure_ascii=False)))
+    resp = ""
+    async for m in agent.invoke(messages=hist.messages):  # type: ignore
+        if m.role == AuthorRole.ASSISTANT:
+            resp += m.content.content
+    try:
+        dialogues = extract_json(resp)
+        if not isinstance(dialogues, list):
+            raise ValueError
+    except (ValueError, json.JSONDecodeError) as e:
+        dialogues = [{"id": "1.1", "ator": "Cliente", "fala": "Olá"}]
+        logger.error("Fallback dialogues used (parse failure): %s", e)
+    out_path = SRC / "dialogues.json"
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(dialogues, f, ensure_ascii=False, indent=2)
+    return dialogues
+
+
+def build_translator_and_reviewer(kernel: sk.Kernel, idioma: str) -> Tuple[ChatCompletionAgent, ChatCompletionAgent]:
+    base_rendered = render_prompt(
+        BASE_PROMPT_TEMPLATE,
+        base=str(ROOT / "notebooks" / "data" / "translation"),
+        idioma=idioma,
+    )
+    translator_prompt = render_prompt(
+        TRANSLATOR_AGENT_PROMPT_TEMPLATE, base_prompt=base_rendered, idioma=idioma
+    )
+    reviewer_prompt = render_prompt(
+        REVIEWER_AGENT_PROMPT_TEMPLATE, base_prompt=base_rendered, idioma=idioma
+    )
+    t = create_agent(
+        kernel, "TranslatorAgent", "Gera enunciado", "gpt-5-mini", translator_prompt
+    )
+    r = create_agent(
+        kernel, "TranslationReviewerAgent", "Revisa enunciado", "reasoning", reviewer_prompt
+    )
+    return t, r
+
+
+class TranslatorReviewerManager(RoundRobinGroupChatManager):
+    def __init__(self, max_rounds: int = 20):
+        super().__init__()
+        self.max_rounds = max_rounds
+        self._last_reviewer_action = None
+        self._turn_index = 0  # translator (even) -> reviewer (odd)
+
+    async def should_request_user_input(self, chat_history):  # type: ignore
+        return BooleanResult(result=False, reason="auto")
+
+    async def should_terminate(self, chat_history):  # type: ignore
+        for msg in reversed(chat_history.messages):  # newest first
+            if (
+                msg.name
+                and msg.name.lower().startswith("translationreviewer")
+                and msg.role == AuthorRole.ASSISTANT
+            ):
+                c = msg.content or ""
+                if '"acao_recomendada"' in c:
+                    if "aprovado" in c:
+                        return BooleanResult(result=True, reason="aprovado")
+                    if "reexecutar" in c:
+                        self._last_reviewer_action = "reexecutar"
+                        break
+        reviewer_msgs = [
+            m for m in chat_history.messages if m.name and m.name.lower().startswith("translationreviewer")
+        ]
+        if self.max_rounds is not None and len(reviewer_msgs) >= self.max_rounds:
+            return BooleanResult(result=True, reason="limite_rounds")
+        return BooleanResult(result=False, reason="continuar")
+
+    async def select_next_agent(self, chat_history, participant_descriptions):  # type: ignore
+        agents = list(participant_descriptions.keys())
+        if len(agents) != 2:
+            return StringResult(result=agents[0], reason="fallback")
+        a, b = agents
+        if self._last_reviewer_action == "reexecutar":
+            self._last_reviewer_action = None
+            sel = a
+            reason = "retry"
+        else:
+            sel = a if self._turn_index % 2 == 0 else b
+            reason = "alternancia"
+        logger.debug("[manager] turn=%d selecting=%s reason=%s", self._turn_index, sel, reason)
+        self._turn_index += 1
+        return StringResult(result=sel, reason=reason)
+
+    async def filter_results(self, chat_history):  # type: ignore
+        for msg in reversed(chat_history.messages):
+            if msg.name and msg.name.lower().startswith("translationreviewer"):
+                return MessageResult(result=msg, reason="reviewer final")
+        return MessageResult(result=chat_history.messages[-1], reason="ultimo")
+
+
+###############################
+# Resilience / retry helpers  #
+###############################
+
+TRANSIENT_STATUS_CODES = {408, 409, 425, 429, 500, 502, 503, 504}
+
+def _get_env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, default))
+    except ValueError:
+        return default
+
+def _get_env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, default))
+    except ValueError:
+        return default
+
+def _get_config() -> Dict[str, Any]:
+    # Simples (sem cache global para evitar warning de global); custo desprezível.
+    return {
+        "retry_max_attempts": _get_env_int("RETRY_MAX_ATTEMPTS", 5),
+        "retry_base_delay": _get_env_float("RETRY_BASE_DELAY", 0.8),
+        "retry_max_delay": _get_env_float("RETRY_MAX_DELAY", 12.0),
+        "call_timeout": _get_env_float("CALL_TIMEOUT_SECONDS", 90.0),
+        "circuit_breaker_threshold": _get_env_int("CIRCUIT_BREAKER_THRESHOLD", 8),
+        "max_concurrency": max(1, _get_env_int("TRANSLIT_MAX_CONCURRENCY", 1)),
+        "partial_flush_interval": _get_env_int("PARTIAL_FLUSH_INTERVAL", 3),
+        "progress_file": os.getenv("TRANSLIT_PROGRESS_FILE"),
+    }
+
+def _is_transient(exc: Exception) -> bool:  # heurística leve
+    code = getattr(exc, "status_code", None) or getattr(getattr(exc, "response", None), "status", None)
+    if isinstance(code, int) and code in TRANSIENT_STATUS_CODES:
+        return True
+    msg = str(exc).lower()
+    transient_markers = [
+        "rate limit",
+        "timed out",
+        "timeout",
+        "temporarily",
+        "connection",
+        "retry-after",
+        "did not return any response",
+        "empty_response",
+    ]
+    return any(m in msg for m in transient_markers)
+
+def _calc_backoff(exc: Exception, attempt: int, base: float, max_delay: float) -> float:
+    # Respeita retry-after quando presente
+    retry_after = None
+    for attr in ("retry_after", "retry_after_ms"):
+        ra = getattr(exc, attr, None)
+        if ra:
+            retry_after = ra
+            break
+    # Header style
+    resp = getattr(exc, "response", None)
+    if retry_after is None and resp is not None:
+        headers = getattr(resp, "headers", {}) or {}
+        for k in ("retry-after-ms", "retry-after"):
+            if k in headers:
+                retry_after = headers[k]
+                break
+    if retry_after is not None:
+        try:
+            return min(float(retry_after) / (1000.0 if "ms" in str(retry_after).lower() else 1.0), max_delay)
+        except ValueError:
+            pass
+    # Exponential com jitter
+    raw = base * (2 ** (attempt - 1))
+    return min(raw + random.uniform(0, 0.5), max_delay)
+
+async def _call_with_retry(op_name: str, coro_factory, *, timeout: Optional[float] = None):
+    cfg = _get_config()
+    max_attempts = cfg["retry_max_attempts"]
+    base = cfg["retry_base_delay"]
+    max_delay = cfg["retry_max_delay"]
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            if timeout is not None:
+                return await asyncio.wait_for(coro_factory(), timeout=timeout)
+            return await coro_factory()
+        except (OSError, RuntimeError, ValueError, asyncio.TimeoutError, ContentFilterAIException) as exc:
+            if isinstance(exc, ContentFilterAIException):
+                # Não retentar content filter: registrar e propagar.
+                logger.error(
+                    "op=%s content_filter err=%r", op_name, exc
                 )
-                convo_id = entry.get("id", "unknown")
-                out_file = translit_dir / f"transliteration_{convo_id}.txt"
-                try:
-                    result_json = self.extract_json(result.content)
-                    # Write review to evaluations.txt if present
-                    if "review" in result_json and result_json["review"]:
-                        last_feedback = result_json["review"]
-                        # Append review JSON to evaluations.txt
-                        eval_file = translit_dir / "evaluations.txt"
-                        with open(eval_file, "a", encoding="utf-8") as ef:
-                            ef.write(json.dumps(last_feedback, ensure_ascii=False))
-                            ef.write("\n")
-                    if "transliteration" in result_json and result_json["transliteration"]:
-                        last_translit = result_json["transliteration"]
-                    with open(out_file, "w", encoding="utf-8") as f:
-                        json.dump(result_json, f, ensure_ascii=False, indent=2)
-                    print(f"Saved transliteration for {convo_id} to {out_file}")
-                    break
-                except Exception as e:
-                    print(f"Erro ao serializar JSON para {convo_id} (tentativa {attempt+1}/{max_attempts}): {e}")
-                    if attempt == max_attempts - 1:
-                        print(f"Falha definitiva ao salvar transliteração para {convo_id}.")
+                raise
+            transient = _is_transient(exc)
+            if not transient or attempt >= max_attempts:
+                logger.error(
+                    "op=%s attempt=%d abort transient=%s err=%r", op_name, attempt, transient, exc
+                )
+                raise
+            delay = _calc_backoff(exc, attempt, base, max_delay)
+            logger.warning(
+                "retry op=%s attempt=%d/%d delay=%.2fs transient=%s err=%s", op_name, attempt, max_attempts, delay, transient, exc
+            )
+            await asyncio.sleep(delay)
 
-async def main():
-    """
-    Entry point for the orchestration pipeline.
-    Loads environment variables, sets up agents, and runs the dialogue and transliteration pipeline using the Orchestrator class.
-    """
-    load_dotenv(SRC / '.env')
-    orchestrator = Orchestrator()
-    async with orchestrator:
-        dialogue_agent, translator_agent, reviewer_agent = orchestrator.create_agents()
-        dialogues_json = await orchestrator.generate_dialogues(dialogue_agent)
-        await orchestrator.run_transliteration_pipeline(dialogues_json, translator_agent, reviewer_agent)
-    return
+async def _process_single_dialog_groupchat(
+    translator: ChatCompletionAgent,
+    reviewer: ChatCompletionAgent,
+    d: Dict[str, Any],
+    idioma: str,
+    max_rounds: int,
+) -> Dict[str, Any]:
+    """Processa um único diálogo com isolamento, retry e timeout.
 
-if __name__ == "__main__":
+    Retorna sempre um objeto de resultado (nunca lança exc. exceto KeyboardInterrupt).
+    """
+    cfg = _get_config()
+    dialogo = dict(d)
+    if "fala" in dialogo and "portugues" not in dialogo:
+        dialogo["portugues"] = dialogo["fala"]
+    try:
+        refs = await fetch_references(translator.kernel, dialogo, idioma)  # type: ignore[attr-defined]
+    except (OSError, RuntimeError, ValueError, KeyError) as e:
+        logger.warning("refs_fail id=%s err=%r", dialogo.get("id"), e)
+        refs = []
+    seed = {
+        "json_object": True,
+        "dialogo": dialogo,
+        "idioma_alvo": idioma,
+        "referencias_indexadas": refs,
+    }
+    manager = TranslatorReviewerManager(max_rounds=max_rounds)
+
+    async def _agent_cb(message):  # type: ignore
+        try:
+            name = getattr(message, "name", None) or "?"
+            role = getattr(message, "role", None)
+            content = (getattr(message, "content", "") or "")
+            logger.debug(
+                "[gc-cb] %s role=%s len=%d preview=%s", name, role, len(content), content[:160].replace("\n", " ")
+            )
+        except RuntimeError as e:  # pragma: no cover
+            logger.warning("[gc-cb] logging error: %s", e)
+
+    orch = GroupChatOrchestration(members=[translator, reviewer], manager=manager, agent_response_callback=_agent_cb)
+    runtime = InProcessRuntime()
+    runtime.start()
+    try:
+        # Retry envolve orch.invoke + handle.get, não cada token individual.
+        async def _invoke_and_get():
+            handle = await orch.invoke(
+                task=ChatMessageContent(
+                    role=AuthorRole.USER, content=json.dumps(seed, ensure_ascii=False)
+                ),
+                runtime=runtime,
+            )
+            result_msg = await handle.get()
+            # Checa resposta vazia (problema observado de agente sem retorno) -> força retry.
+            content_attr = getattr(result_msg, "content", None)
+            if content_attr is None or (isinstance(content_attr, str) and not content_attr.strip()):
+                raise RuntimeError("empty_response")
+            # Alguns objetos podem ter .content como ChatMessageContent; tratar.
+            if not isinstance(content_attr, str):
+                inner = getattr(content_attr, "content", "")
+                if isinstance(inner, str) and not inner.strip():
+                    raise RuntimeError("empty_response_inner")
+            return result_msg
+
+        final = await _call_with_retry(
+            op_name=f"groupchat_{dialogo.get('id','?')}",
+            coro_factory=_invoke_and_get,
+            timeout=cfg["call_timeout"],
+        )
+        content = getattr(final, "content", "") or ""
+        try:
+            parsed = extract_json(content)
+        except (ValueError, json.JSONDecodeError) as e:
+            parsed = {"raw": content, "erro_parse": str(e)}
+        translit = None
+        if isinstance(parsed, dict) and "transliteracao" in parsed:
+            translit = parsed["transliteracao"]
+        if translit is None and isinstance(parsed, list):
+            translit = parsed
+        if translit is None:
+            translit = [
+                {
+                    "id": dialogo.get("id"),
+                    "ator": dialogo.get("ator"),
+                    "portugues": dialogo.get("portugues"),
+                    idioma: "[TRADUÇÃO_INDEFINIDA]",
+                    f"fontes_{idioma}": [
+                        f"{r.get('file_name')}#p{r.get('page_number')}"
+                        for r in refs[:1]
+                        if r.get("file_name")
+                    ],
+                    "sem_fonte": not refs,
+                    "observacao": "fallback",
+                }
+            ]
+        return {"dialogo": d, "transliteracao": translit, "review": parsed}
+    except ContentFilterAIException as cf_err:
+        logger.warning(
+            "[gc] content_filter id=%s detalhe=%s", dialogo.get("id"), cf_err
+        )
+        translit = [
+            {
+                "id": dialogo.get("id"),
+                "ator": dialogo.get("ator"),
+                "portugues": dialogo.get("portugues"),
+                idioma: "[BLOQUEADO_POR_CONTENT_FILTER]",
+                f"fontes_{idioma}": [
+                    f"{r.get('file_name')}#p{r.get('page_number')}" for r in refs[:1] if r.get("file_name")
+                ],
+                "sem_fonte": not refs,
+                "observacao": "Fallback após content filter",
+            }
+        ]
+        return {"dialogo": d, "transliteracao": translit, "review": {"erro": "content_filter"}}
+    except asyncio.TimeoutError:
+        logger.error("timeout groupchat id=%s", dialogo.get("id"))
+        translit = [
+            {
+                "id": dialogo.get("id"),
+                "ator": dialogo.get("ator"),
+                "portugues": dialogo.get("portugues"),
+                idioma: "[TIMEOUT]",
+                f"fontes_{idioma}": [
+                    f"{r.get('file_name')}#p{r.get('page_number')}" for r in refs[:1] if r.get("file_name")
+                ],
+                "sem_fonte": not refs,
+                "observacao": "Timeout na orquestração",
+            }
+        ]
+        return {"dialogo": d, "transliteracao": translit, "review": {"erro": "timeout"}}
+    except (OSError, RuntimeError, ValueError) as e:
+        logger.error("falha_irrecuperavel id=%s err=%r", dialogo.get("id"), e)
+        translit = [
+            {
+                "id": dialogo.get("id"),
+                "ator": dialogo.get("ator"),
+                "portugues": dialogo.get("portugues"),
+                idioma: "[ERRO]",
+                f"fontes_{idioma}": [
+                    f"{r.get('file_name')}#p{r.get('page_number')}" for r in refs[:1] if r.get("file_name")
+                ],
+                "sem_fonte": not refs,
+                "observacao": f"erro: {type(e).__name__}",
+            }
+        ]
+        return {"dialogo": d, "transliteracao": translit, "review": {"erro": str(e)}}
+    finally:
+        await runtime.stop_when_idle()
+
+
+async def run_translation_cycle_groupchat(
+    translator: ChatCompletionAgent,
+    reviewer: ChatCompletionAgent,
+    dialogues: List[Dict[str, Any]],
+    idioma: str,
+    max_rounds: int = 8,
+) -> List[Dict[str, Any]]:
+    """Executa ciclos de tradução em groupchat com concorrência opcional e resiliência.
+
+    - Isola exceções por diálogo.
+    - Aplica retry / timeout via helpers.
+    - Opcionalmente grava progresso parcial.
+    """
+    cfg = _get_config()
+    sem = asyncio.Semaphore(cfg["max_concurrency"])  # controle de explosões de chamadas
+    partial_file = cfg.get("progress_file")
+    flush_interval = cfg["partial_flush_interval"]
+    results_map: Dict[str, Dict[str, Any]] = {}
+    fail_streak = 0
+    circuit_limit = cfg["circuit_breaker_threshold"]
+
+    async def _wrapped(d):
+        nonlocal fail_streak
+        async with sem:
+            try:
+                res = await _process_single_dialog_groupchat(translator, reviewer, d, idioma, max_rounds)
+                fail_streak = 0
+                return res
+            except (OSError, RuntimeError, ValueError, asyncio.TimeoutError) as e:
+                fail_streak += 1
+                logger.error("dialog_global_fail id=%s streak=%d err=%r", d.get("id"), fail_streak, e)
+                return {"dialogo": d, "transliteracao": None, "review": {"erro": str(e)}}
+
+    tasks = [asyncio.create_task(_wrapped(d)) for d in dialogues]
+    completed = 0
+    for coro in asyncio.as_completed(tasks):
+        res = await coro
+        dlg_id = res.get("dialogo", {}).get("id") or f"idx_{completed}"
+        results_map[dlg_id] = res
+        completed += 1
+        # Persistência incremental
+        if partial_file and completed % flush_interval == 0:
+            try:
+                with open(partial_file, "w", encoding="utf-8") as f:
+                    json.dump(list(results_map.values()), f, ensure_ascii=False, indent=2)
+            except OSError as e:  # noqa: BLE001
+                logger.warning("falha_salvar_progresso err=%r", e)
+        if fail_streak >= circuit_limit:
+            logger.error(
+                "circuit_breaker acionado streak=%d limit=%d restante=%d", fail_streak, circuit_limit, len(tasks) - completed
+            )
+            break
+
+    # Ordena de volta conforme entrada
+    ordered: List[Dict[str, Any]] = []
+    for idx, d in enumerate(dialogues):
+        id_val = d.get("id")
+        if isinstance(id_val, str) and id_val:
+            key = id_val
+        else:
+            key = f"idx_{idx}"
+        if key in results_map:
+            entry = results_map[key]
+        else:
+            entry = {"dialogo": d, "transliteracao": None, "review": {"erro": "missing"}}
+        ordered.append(entry)
+    return ordered
+
+
+async def run_translation_cycle_manual(
+    translator: ChatCompletionAgent,
+    reviewer: ChatCompletionAgent,
+    dialogues: List[Dict[str, Any]],
+    idioma: str,
+    max_attempts: int = 3,
+) -> List[Dict[str, Any]]:
+    results: List[Dict[str, Any]] = []
+    for d in dialogues:
+        attempt = 0
+        feedback = None
+        prev = None
+        final = None
+        while attempt < max_attempts:
+            attempt += 1
+            dialogo = dict(d)
+            if "fala" in dialogo and "portugues" not in dialogo:
+                dialogo["portugues"] = dialogo["fala"]
+            refs = await fetch_references(translator.kernel, dialogo, idioma)  # type: ignore[attr-defined]
+            payload = {
+                "json_object": True,
+                "dialogo": dialogo,
+                "idioma_alvo": idioma,
+                "referencias_indexadas": refs,
+                "feedback_previo": feedback,
+                "transliteracao_anterior": prev,
+            }
+            hist = ChatHistory()
+            hist.add_message(
+                ChatMessageContent(
+                    role=AuthorRole.USER, content=json.dumps(payload, ensure_ascii=False)
+                )
+            )
+            resp = ""
+            try:
+                async for m in translator.invoke(messages=hist.messages):  # type: ignore
+                    if m.role == AuthorRole.ASSISTANT:
+                        resp += m.content.content
+            except ContentFilterAIException as cf_err:
+                logger.warning(
+                    "[manual] Content filter bloqueou tradução id=%s tentativa=%d detalhe=%s", dialogo.get("id"), attempt, cf_err
+                )
+                trans = [
+                    {
+                        "id": dialogo.get("id"),
+                        "ator": dialogo.get("ator"),
+                        "portugues": dialogo.get("portugues"),
+                        idioma: "[BLOQUEADO_POR_CONTENT_FILTER]",
+                        f"fontes_{idioma}": [
+                            f"{r.get('file_name')}#p{r.get('page_number')}" for r in refs[:1] if r.get("file_name")
+                        ],
+                        "sem_fonte": not refs,
+                        "observacao": "Fallback gerado após bloqueio de conteúdo",
+                    }
+                ]
+                final = {"dialogo": d, "transliteracao": trans, "review": {"erro": "content_filter"}}
+                break
+            try:
+                trans = extract_json(resp)
+            except (ValueError, json.JSONDecodeError):
+                trans = []
+            if (
+                isinstance(trans, list)
+                and not trans
+                and attempt == max_attempts
+            ):
+                trans = [
+                    {
+                        "id": dialogo.get("id"),
+                        "ator": dialogo.get("ator"),
+                        "portugues": dialogo.get("portugues"),
+                        idioma: "[TRADUÇÃO_PENDENTE]",
+                        f"fontes_{idioma}": [
+                            f"{r.get('file_name')}#p{r.get('page_number')}"
+                            for r in refs[:1]
+                            if r.get("file_name")
+                        ],
+                        "sem_fonte": not refs,
+                        "observacao": "fallback",
+                    }
+                ]
+            prev = trans
+            r_hist = ChatHistory()
+            r_hist.add_message(
+                ChatMessageContent(
+                    role=AuthorRole.USER,
+                    content=json.dumps(
+                        {"json_object": True, "transliteracao": trans, "referencias_indexadas": refs},
+                        ensure_ascii=False,
+                    ),
+                )
+            )
+            r_resp = ""
+            async for m in reviewer.invoke(messages=r_hist.messages):  # type: ignore
+                if m.role == AuthorRole.ASSISTANT:
+                    r_resp += m.content.content
+            try:
+                review = extract_json(r_resp)
+            except (ValueError, json.JSONDecodeError):
+                review = {"acao_recomendada": "reexecutar", "raw": r_resp}
+            if (
+                isinstance(review, dict)
+                and review.get("acao_recomendada") == "aprovado"
+            ):
+                final = {"dialogo": d, "transliteracao": trans, "review": review}
+                break
+            feedback = review
+        if final is None:
+            final = {"dialogo": d, "transliteracao": prev, "review": feedback, "status": "forcado"}
+        results.append(final)
+    return results
+
+
+async def process_language(
+    kernel: sk.Kernel, dialogues: List[Dict[str, Any]], idioma: str, use_groupchat: bool
+) -> List[Dict[str, Any]]:
+    """Processa um idioma inteiro com construção de agentes e tratamento resiliente.
+
+    Reduz complexidade movendo lógica de retry para funções auxiliares; expõe apenas
+    seleção de estratégia (groupchat/manual). Isola construção de agentes e evita
+    propagação de exceções não tratadas.
+    """
+    translator, reviewer = build_translator_and_reviewer(kernel, idioma)
+    try:
+        fn = run_translation_cycle_groupchat if use_groupchat else run_translation_cycle_manual
+        return await fn(translator, reviewer, dialogues, idioma)
+    except (OSError, RuntimeError, ValueError, asyncio.TimeoutError, ContentFilterAIException) as e:
+        logger.error("process_language erro idioma=%s err=%r", idioma, e)
+        # Retorna estrutura fallback para cada diálogo para não quebrar fluxo multi-idioma
+        out: List[Dict[str, Any]] = []
+        for d in dialogues:
+            out.append({
+                "dialogo": d,
+                "transliteracao": None,
+                "review": {"erro": str(e)},
+                "status": "falha_global",
+            })
+        return out
+
+
+async def main():  # pragma: no cover
+    multi_raw = os.getenv("TARGET_IDIOMAS")
+    idiomas = (
+        [i.strip().lower() for i in multi_raw.split(",") if i.strip()]
+        if multi_raw
+        else [os.getenv("TARGET_IDIOMA", "matses").lower()]
+    )
+    use_groupchat = os.getenv("ORCHESTRATION_MODE", "groupchat").lower() == "groupchat"
+    kernel = build_kernel()
+    dialogues = await generate_dialogues(kernel, idioma=idiomas[0])
+    out_dir = Path(__file__).parent / "transliteracoes"
+    out_dir.mkdir(exist_ok=True)
+    if len(idiomas) == 1:
+        idioma = idiomas[0]
+        results = await process_language(kernel, dialogues, idioma, use_groupchat)
+        for r in results:
+            with open(
+                out_dir / f"transliteration_{r['dialogo'].get('id','unknown')}.json",
+                "w",
+                encoding="utf-8",
+            ) as f:
+                json.dump(r, f, ensure_ascii=False, indent=2)
+        with open(out_dir / "transliterations_all.json", "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+        logger.info(
+            "Concluído idioma=%s mode=%s",
+            idioma,
+            "groupchat" if use_groupchat else "manual",
+        )
+        return
+    # Multi-language
+    aggregate: Dict[str, Dict[str, Any]] = {
+        d.get("id", f"dlg_{i}"): {"dialogo": d, "tentativas": []}
+        for i, d in enumerate(dialogues)
+    }
+    for idioma in idiomas:
+        results = await process_language(kernel, dialogues, idioma, use_groupchat)
+        for r in results:
+            dlg_id = r.get("dialogo", {}).get("id")
+            if not dlg_id:
+                continue
+            aggregate[dlg_id]["tentativas"].append(
+                {
+                    "idioma": idioma,
+                    "transliteracao": r.get("transliteracao"),
+                    "review": r.get("review"),
+                }
+            )
+    for dlg_id, obj in aggregate.items():
+        with open(out_dir / f"transliteration_{dlg_id}.json", "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+    with open(out_dir / "transliterations_all.json", "w", encoding="utf-8") as f:
+        json.dump(list(aggregate.values()), f, ensure_ascii=False, indent=2)
+    logger.info(
+        "Concluído multi-línguas=%s mode=%s",
+        idiomas,
+        "groupchat" if use_groupchat else "manual",
+    )
+
+
+if __name__ == "__main__":  # pragma: no cover
     asyncio.run(main())

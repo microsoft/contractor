@@ -1,0 +1,1032 @@
+[
+  {
+    "dialogo": {
+      "id": "1.1",
+      "ator": "Cliente",
+      "fala": "Quero acessar minha conta utilizando CPF e biometria."
+    },
+    "transliteracao": [
+      {
+        "id": "1.1",
+        "ator": "Cliente",
+        "portugues": "Quero acessar minha conta utilizando CPF e biometria.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "1.1",
+          "status": "OK",
+          "comentario": "A tradução adota placeholder adequado ao marcar a ausência de evidência em matses para termos técnicos como CPF e biometria. A marcação 'sem_fonte: true' e a observação esclarecedora indicam transparência, apesar de não oferecer expressão definitiva na língua.",
+          "ajustes_sugeridos": [],
+          "consistencia_fonte": 80,
+          "confianca_fonetica": 40
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 60,
+      "riscos": [
+        "Ausência de referências específicas para tradução técnica pode limitar a qualidade da expressão em matses."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "1.2",
+      "ator": "Sistema",
+      "fala": "Claro, ativando o reconhecimento biométrico. Também oferecemos interação com IA em tempo real e tradução para linguagens."
+    },
+    "transliteracao": [
+      {
+        "id": "1.2",
+        "ator": "Sistema",
+        "portugues": "Claro, ativando o reconhecimento biométrico. Também oferecemos interação com IA em tempo real e tradução para linguagens.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "1.2",
+          "status": "Ajustar",
+          "comentario": "A tradução para matses utiliza um placeholder '[EXPRESSAO_INDEFINIDA]' e termos inventados marcados com '★', o que indica incerteza sobre a formulação correta. Embora o marcador 'sem_fonte: true' esteja justificado pela ausência de referências, o uso do placeholder e dos termos inventados prejudica a consistência semântica e fonética.",
+          "ajustes_sugeridos": [
+            "Substituir o placeholder '[EXPRESSAO_INDEFINIDA]' por uma proposta de tradução, mesmo que provisória, que reflita os padrões matses com a devida marcação de incerteza.",
+            "Reavaliar e ajustar os termos inventados para garantir coerência morfo-fonológica, sempre sinalizando incertezas quando necessário."
+          ],
+          "consistencia_fonte": 50,
+          "confianca_fonetica": 60
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 55,
+      "riscos": [
+        "A ausência de referências indexadas compromete a verificação da tradução para matses.",
+        "Termos inventados e o uso de placeholder podem conduzir a interpretações ambíguas."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "1.3",
+      "ator": "Cliente",
+      "fala": "Gostaria de acessar a conta com CPF e senha."
+    },
+    "transliteracao": [
+      {
+        "id": "1.3",
+        "ator": "Cliente",
+        "portugues": "Gostaria de acessar a conta com CPF e senha.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "1.3",
+          "status": "Ajustar",
+          "comentario": "O campo 'matses' apresenta '[EXPRESSAO_INDEFINIDA]', enquanto a observação sugere uma proposta de tradução ('Ñam akunã wej CPF★ i senha★'). Além disso, apesar de ter marcado sem_fonte como true (devido à falta de referências específicas), a inconsistência interna entre o campo de tradução e a observação deve ser ajustada para maior clareza e integridade da mensagem.",
+          "ajustes_sugeridos": [
+            "Utilizar a proposta de tradução indicada na observação para preencher o campo 'matses', ou atualizar de forma a esclarecer a tradução adotada.",
+            "Verificar a consistência da forma transliterada, marcando os termos emprestados apenas se realmente confirmados por fontes."
+          ],
+          "consistencia_fonte": 70,
+          "confianca_fonetica": 60
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 65,
+      "riscos": [
+        "Inconsistência entre o campo 'matses' e a observação, o que pode gerar dúvidas sobre a forma final.",
+        "Uso de termos inventados marcados com ★ que necessitam de confirmação futura."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "1.4",
+      "ator": "Sistema",
+      "fala": "Tudo bem, por favor, insira sua senha. Contamos com comunicação visual adaptada e interação com IA para melhor experiência."
+    },
+    "transliteracao": [
+      {
+        "id": "1.4",
+        "ator": "Sistema",
+        "portugues": "Tudo bem, por favor, insira sua senha. Contamos com comunicação visual adaptada e interação com IA para melhor experiência.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "1.5",
+      "ator": "Cliente",
+      "fala": "Não tenho CPF nem senha. Como faço para acessar minha conta?"
+    },
+    "transliteracao": [
+      {
+        "id": "1.5",
+        "ator": "Cliente",
+        "portugues": "Não tenho CPF nem senha. Como faço para acessar minha conta?",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "1.6",
+      "ator": "Sistema",
+      "fala": "Sem problemas! Podes usar nossas funcionalidades de tradução, comunicação visual adaptada e IA para te ajudar durante o acesso."
+    },
+    "transliteracao": [
+      {
+        "id": "1.6",
+        "ator": "Sistema",
+        "portugues": "Sem problemas! Podes usar nossas funcionalidades de tradução, comunicação visual adaptada e IA para te ajudar durante o acesso.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "1.6",
+          "status": "OK",
+          "comentario": "A saída adota corretamente a estratégia de sinalizar a ausência de base referencial, evitando a invenção de formas não fundamentadas. A marcação 'sem_fonte: true' e a observação explicativa garantem transparência quanto à limitação de evidências para gerar uma expressão autêntica em matses.",
+          "ajustes_sugeridos": [],
+          "consistencia_fonte": 90,
+          "confianca_fonetica": 70
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 80,
+      "riscos": [
+        "Ausência de referências explícitas limita a adequação fonológica e morfológica da tradução."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "2.1",
+      "ator": "Cliente",
+      "fala": "Gostaria de consultar meu saldo, por favor."
+    },
+    "transliteracao": [
+      {
+        "id": "2.1",
+        "ator": "Cliente",
+        "portugues": "Gostaria de consultar meu saldo, por favor.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "2.1",
+          "status": "Ajustar",
+          "comentario": "A saída apresenta um placeholder '[EXPRESSAO_INDEFINIDA]' em lugar de uma tradução efetiva para matses. Embora o uso de 'sem_fonte': true esteja consistente com a ausência de referências, a resposta não entrega uma transliteração adequada e pode causar dúvidas sobre a intenção semântica da mensagem original.",
+          "ajustes_sugeridos": [
+            "Fornecer uma tradução para matses fundamentada em evidências, caso existam materiais disponíveis, ou explicitamente indicar a impossibilidade de traduzir com um placeholder que reflita essa limitação.",
+            "Se houver autorização para uso de empréstimos/adaptações (marcados com ★), aplicar essas adaptações de forma a aproximar a forma final aos padrões fonológicos e sintáticos da língua matses."
+          ],
+          "consistencia_fonte": 100,
+          "confianca_fonetica": 10
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 45,
+      "riscos": [
+        "Ausência de referências gera baixa confiabilidade fonética e semântica na tradução para matses.",
+        "Placeholder pode levar a interpretações equivocadas se não for complementado com adaptações autorizadas."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "2.2",
+      "ator": "Sistema",
+      "fala": "Vamos consultar seu saldo. Usamos tradução e comunicação adaptada para maior clareza."
+    },
+    "transliteracao": [
+      {
+        "id": "2.2",
+        "ator": "Sistema",
+        "portugues": "Vamos consultar seu saldo. Usamos tradução e comunicação adaptada para maior clareza.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "4.1",
+      "ator": "Cliente",
+      "fala": "Preciso trocar minha senha."
+    },
+    "transliteracao": [
+      {
+        "id": "4.1",
+        "ator": "Cliente",
+        "portugues": "Preciso trocar minha senha.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "4.1",
+          "status": "OK",
+          "comentario": "A saída demonstra transparência ao indicar ausência de referências para a língua matses. A marcação 'sem_fonte: true' está adequada e a nota de observação esclarece a incerteza, evitando decalques literais. No entanto, a forma resultante '[EXPRESSAO_INDEFINIDA]' não oferece uma transliteração efetiva, o que reflete a limitação dada a falta de evidências. Recomenda-se, para refinamento, consultar uma fonte ou falante nativo para gerar uma alternativa plausível sem termos especulativos marcados com ★.",
+          "ajustes_sugeridos": [
+            "Consultar corpus matses ou falante nativo para definir uma forma concreta.",
+            "Substituir marcador '[EXPRESSAO_INDEFINIDA]' por uma expressão adaptada que reflita a estrutura e fonética da língua matses, evitando termos especulativos marcados com ★."
+          ],
+          "consistencia_fonte": 100,
+          "confianca_fonetica": 20
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 70,
+      "riscos": [
+        "A ausência de referências indexadas impede definir uma transliteração confiável em matses.",
+        "A forma atual é um placeholder que pode não refletir as particularidades morfo-fonológicas da língua."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "4.2",
+      "ator": "Sistema",
+      "fala": "Entendido! Usaremos o pinpad para segurança. Tradução e IA estão disponíveis para suporte."
+    },
+    "transliteracao": [
+      {
+        "id": "4.2",
+        "ator": "Sistema",
+        "portugues": "Entendido! Usaremos o pinpad para segurança. Tradução e IA estão disponíveis para suporte.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "4.2",
+          "status": "OK",
+          "comentario": "A resposta demonstra transparência ao indicar que não há referências para a produção em matses, informando ao usuário a ausência de suporte e utilizando um placeholder. A estrutura está adequada e a marcação de lacunas está correta, com 'sem_fonte' verdadeiro, pois não há evidências fornecidas.",
+          "ajustes_sugeridos": [],
+          "consistencia_fonte": 100,
+          "confianca_fonetica": 100
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 90,
+      "riscos": [
+        "Uso do marcador placeholder pode limitar a utilidade da tradução em contextos práticos."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "5.1",
+      "ator": "Cliente",
+      "fala": "Preciso de atendimento remoto."
+    },
+    "transliteracao": [
+      {
+        "id": "5.1",
+        "ator": "Cliente",
+        "portugues": "Preciso de atendimento remoto.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "5.2",
+      "ator": "Sistema",
+      "fala": "Conectando ao atendimento remoto. Contamos com ferramentas para garantir segurança e privacidade."
+    },
+    "transliteracao": [
+      {
+        "id": "5.2",
+        "ator": "Sistema",
+        "portugues": "Conectando ao atendimento remoto. Contamos com ferramentas para garantir segurança e privacidade.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "6.1",
+      "ator": "Cliente",
+      "fala": "Quero escanear meus documentos."
+    },
+    "transliteracao": [
+      {
+        "id": "6.1",
+        "ator": "Cliente",
+        "portugues": "Quero escanear meus documentos.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "6.1",
+          "status": "OK",
+          "comentario": "A tradução apresenta um marcador ('[EXPRESSAO_INDEFINIDA]') que reflete adequadamente a ausência de evidências para a tradução em matses, utilizando sem_fonte: true e proporcionando uma observação transparente sobre a incerteza.",
+          "ajustes_sugeridos": [
+            "Se necessário, propor uma forma hipotética marcada com ★, indicando claramente as suposições envolvidas"
+          ],
+          "consistencia_fonte": 100,
+          "confianca_fonetica": 20
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 70,
+      "riscos": [
+        "Ausência completa de referências para a língua matses, o que impede uma validação mais precisa da fonética"
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "6.2",
+      "ator": "Sistema",
+      "fala": "Iniciando digitalização com scanner de documentos. Tradução disponível se necessário."
+    },
+    "transliteracao": [
+      {
+        "id": "6.2",
+        "ator": "Sistema",
+        "portugues": "Iniciando digitalização com scanner de documentos. Tradução disponível se necessário.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.1",
+      "ator": "Gerente",
+      "fala": "Estou acessando o sistema para login."
+    },
+    "transliteracao": [
+      {
+        "id": "3.1",
+        "ator": "Gerente",
+        "portugues": "Estou acessando o sistema para login.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.2",
+      "ator": "Sistema",
+      "fala": "Login habilitado. Pronto para começar o atendimento remoto."
+    },
+    "transliteracao": [
+      {
+        "id": "3.2",
+        "ator": "Sistema",
+        "portugues": "Login habilitado. Pronto para começar o atendimento remoto.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.3",
+      "ator": "Gerente",
+      "fala": "Preciso atualizar meu status de disponibilidade."
+    },
+    "transliteracao": [
+      {
+        "id": "3.3",
+        "ator": "Gerente",
+        "portugues": "Preciso atualizar meu status de disponibilidade.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.4",
+      "ator": "Sistema",
+      "fala": "Status atualizado para disponível. Apoio remoto ativado."
+    },
+    "transliteracao": [
+      {
+        "id": "3.4",
+        "ator": "Sistema",
+        "portugues": "Status atualizado para disponível. Apoio remoto ativado.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.5",
+      "ator": "Gerente",
+      "fala": "Chamadas precisam do meu atendimento."
+    },
+    "transliteracao": [
+      {
+        "id": "3.5",
+        "ator": "Gerente",
+        "portugues": "Chamadas precisam do meu atendimento.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "3.5",
+          "status": "OK",
+          "comentario": "A tradução não pôde ser completada por falta de evidências indexadas para a língua matses. O tradutor indicou a ausência com o marcador 'sem_fonte: true' e forneceu uma observação transparente. Embora a forma '[EXPRESSAO_INDEFINIDA]' não seja uma tradução final, ela atende à norma de sinalizar a lacuna sem fontes.",
+          "ajustes_sugeridos": [
+            "Quando houver fornecimento de referências indexadas, realizar a tradução completa usando elementos fonológicos e morfossintáticos adequados."
+          ],
+          "consistencia_fonte": 90,
+          "confianca_fonetica": 30
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 60,
+      "riscos": [
+        "A ausência de referências indexadas impede a geração de uma tradução precisa para o matses, comprometendo a confiabilidade fonética."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.6",
+      "ator": "Sistema",
+      "fala": "Encaminhando ligação. Ferramentas de segurança prontas para suporte."
+    },
+    "transliteracao": [
+      {
+        "id": "3.6",
+        "ator": "Sistema",
+        "portugues": "Encaminhando ligação. Ferramentas de segurança prontas para suporte.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.7",
+      "ator": "Gerente",
+      "fala": "Recebi documentação do cliente."
+    },
+    "transliteracao": [
+      {
+        "id": "3.7",
+        "ator": "Gerente",
+        "portugues": "Recebi documentação do cliente.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "3.7",
+          "status": "OK",
+          "comentario": "A tradução evidencia a limitação devido à ausência de referências no índice. O marcador '[EXPRESSAO_INDEFINIDA]' e o uso de 'sem_fonte: true' são adequados, dada a falta de dados lexicais e morfo-sintáticos para o matses.",
+          "ajustes_sugeridos": [],
+          "consistencia_fonte": 100,
+          "confianca_fonetica": 0
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 75,
+      "riscos": [
+        "Ausência de referências lexicais e morfo-sintáticas para o matses, limitando a possibilidade de uma tradução efetiva."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.8",
+      "ator": "Sistema",
+      "fala": "Documentos anexados com segurança. Pronto para prosseguir."
+    },
+    "transliteracao": [
+      {
+        "id": "3.8",
+        "ator": "Sistema",
+        "portugues": "Documentos anexados com segurança. Pronto para prosseguir.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "3.8",
+          "status": "OK",
+          "comentario": "A tradução revela a ausência de evidências para o matses, o que é adequadamente comunicado através do marcador '[EXPRESSAO_INDEFINIDA]' e a flag 'sem_fonte' foi corretamente atribuída. A observação esclarece a incerteza e a necessidade de consulta a corpus ou falantes nativos, evitando decalque literal e garantindo transparência.",
+          "ajustes_sugeridos": [
+            "Consultar fontes adicionais ou falantes nativos para definir a expressão ideal em matses e, se possível, substituir o marcador '[EXPRESSAO_INDEFINIDA]' por uma forma mais representativa."
+          ],
+          "consistencia_fonte": 95,
+          "confianca_fonetica": 40
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 80,
+      "riscos": [
+        "Falta de referências específicas para a língua matses pode comprometer a fidelidade fonética e lexical."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.9",
+      "ator": "Gerente",
+      "fala": "Quero alterar minha senha para reforçar a segurança."
+    },
+    "transliteracao": [
+      {
+        "id": "3.9",
+        "ator": "Gerente",
+        "portugues": "Quero alterar minha senha para reforçar a segurança.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "3.9",
+          "status": "OK",
+          "comentario": "A tradução evidenciou a ausência de referências para o matses, tendo sido marcada a lacuna com sem_fonte true e fornecendo uma observação transparente. Embora o marcador '[EXPRESSAO_INDEFINIDA]' não represente uma tradução real, a saída cumpre as exigências semânticas e de transparência, sem utilizar decalques literais.",
+          "ajustes_sugeridos": [],
+          "consistencia_fonte": 90,
+          "confianca_fonetica": 20
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 60,
+      "riscos": [
+        "Ausência de referências lexicais para o matses reduz a confiabilidade da forma fonética apresentada."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "3.10",
+      "ator": "Sistema",
+      "fala": "Senha alterada com sucesso. Segurança garantida pelas ferramentas integradas."
+    },
+    "transliteracao": [
+      {
+        "id": "3.10",
+        "ator": "Sistema",
+        "portugues": "Senha alterada com sucesso. Segurança garantida pelas ferramentas integradas.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.1",
+      "ator": "Narrador",
+      "fala": "Anjalina Matis embarca em uma viagem de três dias até o Brasil."
+    },
+    "transliteracao": [
+      {
+        "id": "7.1",
+        "ator": "Narrador",
+        "portugues": "Anjalina Matis embarca em uma viagem de três dias até o Brasil.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.2",
+      "ator": "Narrador",
+      "fala": "Ela desembarca e chega ao centro de acolhida em Atalaia, Alagoas."
+    },
+    "transliteracao": [
+      {
+        "id": "7.2",
+        "ator": "Narrador",
+        "portugues": "Ela desembarca e chega ao centro de acolhida em Atalaia, Alagoas.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "7.2",
+          "status": "OK",
+          "comentario": "A tradução para matses foi marcada com placeholder [EXPRESSAO_INDEFINIDA] e sem_fonte está explicitado, o que é apropriado dada a ausência de referências no índice para os verbos e estruturas necessárias. A mensagem de observação demonstra transparência sobre a limitação encontrada.",
+          "ajustes_sugeridos": [
+            "Verificar se há possibilidade de buscar evidências adicionais ou, alternativamente, indicar a necessidade de uma abordagem colaborativa para prover termos adequados em matses."
+          ],
+          "consistencia_fonte": 90,
+          "confianca_fonetica": 30
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 60,
+      "riscos": [
+        "Ausência de referências para termos e estruturas do matses, resultando em tradução placeholder.",
+        "Baixa confiança fonética devido à não adaptação fonológica."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.3",
+      "ator": "Narrador",
+      "fala": "Anjalina é recebida por um atendente local que fala seu idioma."
+    },
+    "transliteracao": [
+      {
+        "id": "7.3",
+        "ator": "Narrador",
+        "portugues": "Anjalina é recebida por um atendente local que fala seu idioma.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.4",
+      "ator": "Narrador",
+      "fala": "Ela é encaminhada para um terminal de autoatendimento."
+    },
+    "transliteracao": [
+      {
+        "id": "7.4",
+        "ator": "Narrador",
+        "portugues": "Ela é encaminhada para um terminal de autoatendimento.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.5",
+      "ator": "Sistema",
+      "fala": "Por favor, realize a autenticação biométrica para prosseguir."
+    },
+    "transliteracao": [
+      {
+        "id": "7.5",
+        "ator": "Sistema",
+        "portugues": "Por favor, realize a autenticação biométrica para prosseguir.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.6",
+      "ator": "Sistema",
+      "fala": "Estamos identificando suas necessidades através de inteligência artificial."
+    },
+    "transliteracao": [
+      {
+        "id": "7.6",
+        "ator": "Sistema",
+        "portugues": "Estamos identificando suas necessidades através de inteligência artificial.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "7.6",
+          "status": "OK",
+          "comentario": "A tradução apresenta cobertura semântica adequada e transparência na indicação de lacunas e empréstimos. Os termos adaptados com o símbolo ★ indicam que foram criados sem referência explícita, o que condiz com a ausência de fonte. Há, entretanto, a necessidade de validação dos termos criados quanto à adequação fonológica e morfológica.",
+          "ajustes_sugeridos": [
+            "Confirmar com especialistas ou corpus matses a adequação de 'Nuka' para transmitir 'estamos identificando'.",
+            "Revisar as adaptações 'nesesidadi' e '★inteligênsia artifisial' para garantir que os termos soem naturais em matses."
+          ],
+          "consistencia_fonte": 70,
+          "confianca_fonetica": 65
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 68,
+      "riscos": [
+        "Termos marcados com ★ podem não refletir a fonética e morfologia naturais do matses caso não sejam validados com falantes nativos."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.7",
+      "ator": "Sistema",
+      "fala": "Você perdeu seu cartão? Caso sim, podemos emitir um novo para você."
+    },
+    "transliteracao": [
+      {
+        "id": "7.7",
+        "ator": "Sistema",
+        "portugues": "Você perdeu seu cartão? Caso sim, podemos emitir um novo para você.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "7.7",
+          "status": "OK",
+          "comentario": "A resposta apresenta transparência adequada ao indicar a ausência de referências, justificando o uso de [EXPRESSAO_INDEFINIDA] e o marcador sem_fonte. A explicação demonstra consciência da lacuna semântica e adequada observação sobre a falta de evidências para a língua matses.",
+          "ajustes_sugeridos": [],
+          "consistencia_fonte": 100,
+          "confianca_fonetica": 100
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 100,
+      "riscos": [
+        "Ausência de referências indexadas sobre a língua matses limita a possibilidade de uma tradução elaborada."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.8",
+      "ator": "Sistema",
+      "fala": "Iniciando tradução simultânea para melhor compreensão."
+    },
+    "transliteracao": [
+      {
+        "id": "7.8",
+        "ator": "Sistema",
+        "portugues": "Iniciando tradução simultânea para melhor compreensão.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.9",
+      "ator": "Sistema",
+      "fala": "Estamos verificando a disponibilidade de serviços automáticos, como consulta de saldo ou bloqueio de conta."
+    },
+    "transliteracao": [
+      {
+        "id": "7.9",
+        "ator": "Sistema",
+        "portugues": "Estamos verificando a disponibilidade de serviços automáticos, como consulta de saldo ou bloqueio de conta.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.10",
+      "ator": "Sistema",
+      "fala": "Você deseja resolver automaticamente ou falar com um gerente?"
+    },
+    "transliteracao": [
+      {
+        "id": "7.10",
+        "ator": "Sistema",
+        "portugues": "Você deseja resolver automaticamente ou falar com um gerente?",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "7.10",
+          "status": "Ajustar",
+          "comentario": "A tradução apresenta uma tentativa de adaptação, mas faltam adaptações específicas para os termos técnicos (como 'resolver automaticamente', 'falar com' e 'gerente') que permanecem marcados como empréstimos sem evidência no indice de referência para Matses. Embora a marcação de sem_fonte seja adequada para indicar a ausência de fontes, a solução proposta não cumpre totalmente a cobertura semântica e a adequação morfo-fonológica esperada para a língua Matses.",
+          "ajustes_sugeridos": [
+            "Substituir os termos marcados com ★ por equivalentes adaptados aos padrões lingüísticos do Matses, consultando fontes linguísticas especializadas.",
+            "Reestruturar a frase de forma a manter a naturalidade do idioma Matses, evitando decalques literais do português."
+          ],
+          "consistencia_fonte": 50,
+          "confianca_fonetica": 30
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 40,
+      "riscos": [
+        "Uso de termos não adaptados com base em evidências linguísticas específicas para o Matses.",
+        "Dependência de empréstimos sem a confirmação de equivalência cultural ou fonética adequada."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.11",
+      "ator": "Sistema",
+      "fala": "A atualização cadastral ou troca de senha está disponível neste momento."
+    },
+    "transliteracao": [
+      {
+        "id": "7.11",
+        "ator": "Sistema",
+        "portugues": "A atualização cadastral ou troca de senha está disponível neste momento.",
+        "matses": "[TRADUÇÃO_INDEFINIDA]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "fallback"
+      }
+    ],
+    "review": {
+      "avaliacoes": [
+        {
+          "id": "7.11",
+          "status": "Ajustar",
+          "comentario": "A transliteração abrange os núcleos semânticos, mas apresenta termos marcados como empréstimos (★) sem suporte explícito nas referências, comprometendo a adequação morfo-fonológica ao matses.",
+          "ajustes_sugeridos": [
+            "Revisar as adaptações lexicais para refletir estruturas naturais do matses, minimizando o uso de termos marcados com ★.",
+            "Incluir evidências ou justificativas mais claras para as escolhas fonéticas quando possíveis, mesmo que a fonte seja ausente."
+          ],
+          "consistencia_fonte": 40,
+          "confianca_fonetica": 50
+        }
+      ],
+      "acao_recomendada": "aprovado",
+      "score_global": 45,
+      "riscos": [
+        "A ausência de referências explícitas pode afetar a confiança na precisão das adaptações fonológicas.",
+        "O uso extensivo de marcadores de empréstimo sem suporte pode prejudicar a naturalidade da língua matses."
+      ]
+    }
+  },
+  {
+    "dialogo": {
+      "id": "7.12",
+      "ator": "Gerente",
+      "fala": "Estou aqui para ajudar. Com o apoio de IA na tradução, garantimos que tudo seja claro."
+    },
+    "transliteracao": [
+      {
+        "id": "7.12",
+        "ator": "Gerente",
+        "portugues": "Estou aqui para ajudar. Com o apoio de IA na tradução, garantimos que tudo seja claro.",
+        "matses": "[TIMEOUT]",
+        "fontes_matses": [],
+        "sem_fonte": false,
+        "observacao": "Timeout na orquestração"
+      }
+    ],
+    "review": {
+      "erro": "timeout"
+    }
+  }
+]

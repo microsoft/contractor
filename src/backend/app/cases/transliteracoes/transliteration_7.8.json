@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "7.8",
+    "ator": "Sistema",
+    "fala": "Iniciando tradução simultânea para melhor compreensão."
+  },
+  "transliteracao": [
+    {
+      "id": "7.8",
+      "ator": "Sistema",
+      "portugues": "Iniciando tradução simultânea para melhor compreensão.",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

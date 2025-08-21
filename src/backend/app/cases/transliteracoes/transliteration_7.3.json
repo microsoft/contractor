@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "7.3",
+    "ator": "Narrador",
+    "fala": "Anjalina é recebida por um atendente local que fala seu idioma."
+  },
+  "transliteracao": [
+    {
+      "id": "7.3",
+      "ator": "Narrador",
+      "portugues": "Anjalina é recebida por um atendente local que fala seu idioma.",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "dialogo": {
+    "id": "3.3",
+    "ator": "Gerente",
+    "fala": "Preciso atualizar meu status de disponibilidade."
+  },
+  "transliteracao": [
+    {
+      "id": "3.3",
+      "ator": "Gerente",
+      "portugues": "Preciso atualizar meu status de disponibilidade.",
+      "matses": "[TIMEOUT]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "Timeout na orquestração"
+    }
+  ],
+  "review": {
+    "erro": "timeout"
+  }
+}

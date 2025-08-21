@@ -1,0 +1,38 @@
+{
+  "dialogo": {
+    "id": "7.6",
+    "ator": "Sistema",
+    "fala": "Estamos identificando suas necessidades através de inteligência artificial."
+  },
+  "transliteracao": [
+    {
+      "id": "7.6",
+      "ator": "Sistema",
+      "portugues": "Estamos identificando suas necessidades através de inteligência artificial.",
+      "matses": "[TRADUÇÃO_INDEFINIDA]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "fallback"
+    }
+  ],
+  "review": {
+    "avaliacoes": [
+      {
+        "id": "7.6",
+        "status": "OK",
+        "comentario": "A tradução apresenta cobertura semântica adequada e transparência na indicação de lacunas e empréstimos. Os termos adaptados com o símbolo ★ indicam que foram criados sem referência explícita, o que condiz com a ausência de fonte. Há, entretanto, a necessidade de validação dos termos criados quanto à adequação fonológica e morfológica.",
+        "ajustes_sugeridos": [
+          "Confirmar com especialistas ou corpus matses a adequação de 'Nuka' para transmitir 'estamos identificando'.",
+          "Revisar as adaptações 'nesesidadi' e '★inteligênsia artifisial' para garantir que os termos soem naturais em matses."
+        ],
+        "consistencia_fonte": 70,
+        "confianca_fonetica": 65
+      }
+    ],
+    "acao_recomendada": "aprovado",
+    "score_global": 68,
+    "riscos": [
+      "Termos marcados com ★ podem não refletir a fonética e morfologia naturais do matses caso não sejam validados com falantes nativos."
+    ]
+  }
+}

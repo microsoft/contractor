@@ -1,0 +1,35 @@
+{
+  "dialogo": {
+    "id": "3.9",
+    "ator": "Gerente",
+    "fala": "Quero alterar minha senha para reforçar a segurança."
+  },
+  "transliteracao": [
+    {
+      "id": "3.9",
+      "ator": "Gerente",
+      "portugues": "Quero alterar minha senha para reforçar a segurança.",
+      "matses": "[TRADUÇÃO_INDEFINIDA]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "fallback"
+    }
+  ],
+  "review": {
+    "avaliacoes": [
+      {
+        "id": "3.9",
+        "status": "OK",
+        "comentario": "A tradução evidenciou a ausência de referências para o matses, tendo sido marcada a lacuna com sem_fonte true e fornecendo uma observação transparente. Embora o marcador '[EXPRESSAO_INDEFINIDA]' não represente uma tradução real, a saída cumpre as exigências semânticas e de transparência, sem utilizar decalques literais.",
+        "ajustes_sugeridos": [],
+        "consistencia_fonte": 90,
+        "confianca_fonetica": 20
+      }
+    ],
+    "acao_recomendada": "aprovado",
+    "score_global": 60,
+    "riscos": [
+      "Ausência de referências lexicais para o matses reduz a confiabilidade da forma fonética apresentada."
+    ]
+  }
+}

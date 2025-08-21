@@ -1,0 +1,39 @@
+{
+  "dialogo": {
+    "id": "2.1",
+    "ator": "Cliente",
+    "fala": "Gostaria de consultar meu saldo, por favor."
+  },
+  "transliteracao": [
+    {
+      "id": "2.1",
+      "ator": "Cliente",
+      "portugues": "Gostaria de consultar meu saldo, por favor.",
+      "matses": "[TRADUÇÃO_INDEFINIDA]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "fallback"
+    }
+  ],
+  "review": {
+    "avaliacoes": [
+      {
+        "id": "2.1",
+        "status": "Ajustar",
+        "comentario": "A saída apresenta um placeholder '[EXPRESSAO_INDEFINIDA]' em lugar de uma tradução efetiva para matses. Embora o uso de 'sem_fonte': true esteja consistente com a ausência de referências, a resposta não entrega uma transliteração adequada e pode causar dúvidas sobre a intenção semântica da mensagem original.",
+        "ajustes_sugeridos": [
+          "Fornecer uma tradução para matses fundamentada em evidências, caso existam materiais disponíveis, ou explicitamente indicar a impossibilidade de traduzir com um placeholder que reflita essa limitação.",
+          "Se houver autorização para uso de empréstimos/adaptações (marcados com ★), aplicar essas adaptações de forma a aproximar a forma final aos padrões fonológicos e sintáticos da língua matses."
+        ],
+        "consistencia_fonte": 100,
+        "confianca_fonetica": 10
+      }
+    ],
+    "acao_recomendada": "aprovado",
+    "score_global": 45,
+    "riscos": [
+      "Ausência de referências gera baixa confiabilidade fonética e semântica na tradução para matses.",
+      "Placeholder pode levar a interpretações equivocadas se não for complementado com adaptações autorizadas."
+    ]
+  }
+}

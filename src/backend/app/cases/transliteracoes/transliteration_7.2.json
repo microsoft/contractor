@@ -1,0 +1,38 @@
+{
+  "dialogo": {
+    "id": "7.2",
+    "ator": "Narrador",
+    "fala": "Ela desembarca e chega ao centro de acolhida em Atalaia, Alagoas."
+  },
+  "transliteracao": [
+    {
+      "id": "7.2",
+      "ator": "Narrador",
+      "portugues": "Ela desembarca e chega ao centro de acolhida em Atalaia, Alagoas.",
+      "matses": "[TRADUÇÃO_INDEFINIDA]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "fallback"
+    }
+  ],
+  "review": {
+    "avaliacoes": [
+      {
+        "id": "7.2",
+        "status": "OK",
+        "comentario": "A tradução para matses foi marcada com placeholder [EXPRESSAO_INDEFINIDA] e sem_fonte está explicitado, o que é apropriado dada a ausência de referências no índice para os verbos e estruturas necessárias. A mensagem de observação demonstra transparência sobre a limitação encontrada.",
+        "ajustes_sugeridos": [
+          "Verificar se há possibilidade de buscar evidências adicionais ou, alternativamente, indicar a necessidade de uma abordagem colaborativa para prover termos adequados em matses."
+        ],
+        "consistencia_fonte": 90,
+        "confianca_fonetica": 30
+      }
+    ],
+    "acao_recomendada": "aprovado",
+    "score_global": 60,
+    "riscos": [
+      "Ausência de referências para termos e estruturas do matses, resultando em tradução placeholder.",
+      "Baixa confiança fonética devido à não adaptação fonológica."
+    ]
+  }
+}

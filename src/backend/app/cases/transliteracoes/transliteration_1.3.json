@@ -1,0 +1,39 @@
+{
+  "dialogo": {
+    "id": "1.3",
+    "ator": "Cliente",
+    "fala": "Gostaria de acessar a conta com CPF e senha."
+  },
+  "transliteracao": [
+    {
+      "id": "1.3",
+      "ator": "Cliente",
+      "portugues": "Gostaria de acessar a conta com CPF e senha.",
+      "matses": "[TRADUÇÃO_INDEFINIDA]",
+      "fontes_matses": [],
+      "sem_fonte": false,
+      "observacao": "fallback"
+    }
+  ],
+  "review": {
+    "avaliacoes": [
+      {
+        "id": "1.3",
+        "status": "Ajustar",
+        "comentario": "O campo 'matses' apresenta '[EXPRESSAO_INDEFINIDA]', enquanto a observação sugere uma proposta de tradução ('Ñam akunã wej CPF★ i senha★'). Além disso, apesar de ter marcado sem_fonte como true (devido à falta de referências específicas), a inconsistência interna entre o campo de tradução e a observação deve ser ajustada para maior clareza e integridade da mensagem.",
+        "ajustes_sugeridos": [
+          "Utilizar a proposta de tradução indicada na observação para preencher o campo 'matses', ou atualizar de forma a esclarecer a tradução adotada.",
+          "Verificar a consistência da forma transliterada, marcando os termos emprestados apenas se realmente confirmados por fontes."
+        ],
+        "consistencia_fonte": 70,
+        "confianca_fonetica": 60
+      }
+    ],
+    "acao_recomendada": "aprovado",
+    "score_global": 65,
+    "riscos": [
+      "Inconsistência entre o campo 'matses' e a observação, o que pode gerar dúvidas sobre a forma final.",
+      "Uso de termos inventados marcados com ★ que necessitam de confirmação futura."
+    ]
+  }
+}
