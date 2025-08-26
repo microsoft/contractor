@@ -34,6 +34,7 @@ openai = "^1.99.9"
 azure-ai-inference = "^1.0.0b9"
 
 
+
 [tool.poetry.group.dev.dependencies]
 faker = "*"
 python-dotenv = "*"

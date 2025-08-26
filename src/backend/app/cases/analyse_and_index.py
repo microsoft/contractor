@@ -91,6 +91,9 @@ class AppConfig:
     pdf_folder: str = ""
     embedding_dimensions: int = 1024
     embedding_endpoint: str = ""
+    embedding_vectorizer_deployment: str = ""
+    embedding_vectorizer_model: str = ""
+    embedding_vectorizer_endpoint: str = ""
 
     @staticmethod
     def from_env() -> "AppConfig":
@@ -101,7 +104,7 @@ class AppConfig:
             azure_foundry_url=os.getenv("AZURE_FOUNDRY_URL", ""),
             embedding_model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL"),
             chat_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
-            pdf_index_name=os.getenv("PDF_INDEX_NAME", "pdf-index-v1"),
+            pdf_index_name=os.getenv("PDF_INDEX_NAME", "pdf-index-v2"),
             pdf_folder=os.getenv("PDF_FOLDER"),
             embedding_dimensions=int(os.getenv("EMBED_DIM", "1024")),
             embedding_endpoint=os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT"),
@@ -109,6 +112,7 @@ class AppConfig:
                 "AZURE_OPENAI_EMBEDDING_VECTORIZER_DEPLOYMENT"
             ),
             embedding_vectorizer_model=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_MODEL"),
+            embedding_vectorizer_endpoint=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_ENDPOINT"),
         )
 
 
@@ -385,9 +389,10 @@ class SearchIndexService:
                 AzureOpenAIVectorizer(
                     vectorizer_name="myVectorizer",
                     parameters=AzureOpenAIVectorizerParameters(
-                        resource_url=self._config.embedding_endpoint,
+                        resource_url=self._config.embedding_vectorizer_endpoint,
                         model_name=self._config.embedding_vectorizer_model,
                         deployment_name=self._config.embedding_vectorizer_deployment,
+                        api_key=self._config.azure_foundry_key,
                     ),
                 )
             ],
