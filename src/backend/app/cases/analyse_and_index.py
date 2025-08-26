@@ -103,17 +103,15 @@ class AppConfig:
             search_service_key=os.getenv("AZURE_SEARCH_API_KEY", ""),
             azure_foundry_key=os.getenv("AZURE_FOUNDRY_KEY", ""),
             azure_foundry_url=os.getenv("AZURE_FOUNDRY_URL", ""),
-            embedding_model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL"),
-            chat_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+            embedding_model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL", ""),
+            chat_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT", ""),
             pdf_index_name=os.getenv("PDF_INDEX_NAME", "pdf-index-v2"),
-            pdf_folder=os.getenv("PDF_FOLDER"),
+            pdf_folder=os.getenv("PDF_FOLDER", ""),
             embedding_dimensions=int(os.getenv("EMBED_DIM", "1024")),
-            embedding_endpoint=os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT"),
-            embedding_vectorizer_deployment=os.getenv(
-                "AZURE_OPENAI_EMBEDDING_VECTORIZER_DEPLOYMENT"
-            ),
-            embedding_vectorizer_model=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_MODEL"),
-            embedding_vectorizer_endpoint=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_ENDPOINT"),
+            embedding_endpoint=os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT", ""),
+            embedding_vectorizer_deployment=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_DEPLOYMENT", ""),
+            embedding_vectorizer_model=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_MODEL", ""),
+            embedding_vectorizer_endpoint=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_ENDPOINT", ""),
         )
 
 
@@ -377,7 +375,6 @@ class SearchIndexService:
                 dimensions=self._config.embedding_dimensions,
                 vector_search_dimensions=self._config.embedding_dimensions,
                 vector_search_profile_name="underlyingHnswProfile",
-                retrievable=True,
             ),
         ]
         # Configuração de busca vetorial (perfil HNSW)
