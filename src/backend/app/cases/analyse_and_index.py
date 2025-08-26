@@ -87,8 +87,9 @@ class AppConfig:
     azure_foundry_url: str
     embedding_model: str
     chat_deployment: str
-    pdf_index_name: str = "pdf-index-two"
+    pdf_index_name: str = "pdf-index"
     pdf_folder: str = ""
+    embedding_url: str = ""
     embedding_dimensions: int = 1024
     embedding_endpoint: str = ""
     embedding_vectorizer_deployment: str = ""
@@ -167,12 +168,13 @@ class PDFReaderService:
         pages: List[str] = []
         with open(pdf_path, "rb") as handler:
             reader = PdfReader(handler)
-            for p in reader.pages:
-                try:
-                    pages.append(p.extract_text() or "")
-                except (ValueError, RuntimeError, OSError) as exc:  # pragma: no cover
-                    logger.warning("Falha extraindo página PDF %s: %s", pdf_path, exc)
-                    pages.append("")
+            if reader.pages:
+                for p in reader.pages:
+                    try:
+                        pages.append(p.extract_text() or "")
+                    except (ValueError, RuntimeError, OSError) as exc:  # pragma: no cover
+                        logger.warning("Falha extraindo página PDF %s: %s", pdf_path, exc)
+                        pages.append("")
         return pages
 
     def extract_full_text(self, pdf_path: str) -> str:
@@ -371,6 +373,7 @@ class SearchIndexService:
                 name="vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
+                retrievable=True,
                 dimensions=self._config.embedding_dimensions,
                 vector_search_dimensions=self._config.embedding_dimensions,
                 vector_search_profile_name="underlyingHnswProfile",

@@ -2,181 +2,196 @@
   {
     "id": "1.1",
     "ator": "Cliente",
-    "fala": "Quero acessar minha conta utilizando CPF e biometria."
+    "fala": "Gostaria de acessar minha conta usando meu CPF e biometria."
   },
   {
     "id": "1.2",
     "ator": "Sistema",
-    "fala": "Claro, ativando o reconhecimento biométrico. Também oferecemos interação com IA em tempo real e tradução para linguagens."
+    "fala": "Ok, vamos verificar sua biometria. Por favor, coloque o dedo no leitor."
   },
   {
     "id": "1.3",
     "ator": "Cliente",
-    "fala": "Gostaria de acessar a conta com CPF e senha."
+    "fala": "Gostaria de acessar minha conta usando meu CPF e senha."
   },
   {
     "id": "1.4",
     "ator": "Sistema",
-    "fala": "Tudo bem, por favor, insira sua senha. Contamos com comunicação visual adaptada e interação com IA para melhor experiência."
+    "fala": "Por favor, insira sua senha para acessar sua conta."
   },
   {
     "id": "1.5",
     "ator": "Cliente",
-    "fala": "Não tenho CPF nem senha. Como faço para acessar minha conta?"
+    "fala": "Não tenho meu CPF nem minha senha comigo. O que posso fazer?"
   },
   {
     "id": "1.6",
     "ator": "Sistema",
-    "fala": "Sem problemas! Podes usar nossas funcionalidades de tradução, comunicação visual adaptada e IA para te ajudar durante o acesso."
+    "fala": "Não se preocupe, você pode acessar sua conta com suporte de IA em tempo real. Vamos começar!"
   },
   {
     "id": "2.1",
     "ator": "Cliente",
-    "fala": "Gostaria de consultar meu saldo, por favor."
+    "fala": "Quero consultar meu saldo, por favor."
   },
   {
     "id": "2.2",
     "ator": "Sistema",
-    "fala": "Vamos consultar seu saldo. Usamos tradução e comunicação adaptada para maior clareza."
+    "fala": "Certo, vou exibir as informações para você agora."
   },
   {
-    "id": "4.1",
+    "id": "3.1",
     "ator": "Cliente",
     "fala": "Preciso trocar minha senha."
   },
   {
-    "id": "4.2",
+    "id": "3.2",
     "ator": "Sistema",
-    "fala": "Entendido! Usaremos o pinpad para segurança. Tradução e IA estão disponíveis para suporte."
+    "fala": "Por favor, insira sua senha atual e configure uma nova usando o pinpad."
+  },
+  {
+    "id": "4.1",
+    "ator": "Cliente",
+    "fala": "Preciso de ajuda com atendimento remoto."
+  },
+  {
+    "id": "4.2",
+    "ator": "Plataforma",
+    "fala": "Conectando você com um atendente remoto. Por favor, aguarde."
   },
   {
     "id": "5.1",
     "ator": "Cliente",
-    "fala": "Preciso de atendimento remoto."
+    "fala": "Tenho documentos para digitalizar."
   },
   {
     "id": "5.2",
     "ator": "Sistema",
-    "fala": "Conectando ao atendimento remoto. Contamos com ferramentas para garantir segurança e privacidade."
+    "fala": "Use o scanner de documentos na próxima etapa. Posicione o documento no local indicado."
   },
   {
     "id": "6.1",
-    "ator": "Cliente",
-    "fala": "Quero escanear meus documentos."
+    "ator": "Gerente",
+    "fala": "Preciso fazer login no sistema."
   },
   {
     "id": "6.2",
     "ator": "Sistema",
-    "fala": "Iniciando digitalização com scanner de documentos. Tradução disponível se necessário."
+    "fala": "Bem-vindo! Inicie o atendimento remoto a partir do menu principal."
   },
   {
-    "id": "3.1",
+    "id": "6.3",
     "ator": "Gerente",
-    "fala": "Estou acessando o sistema para login."
+    "fala": "Quero atualizar meu status de disponibilidade."
   },
   {
-    "id": "3.2",
+    "id": "6.4",
     "ator": "Sistema",
-    "fala": "Login habilitado. Pronto para começar o atendimento remoto."
+    "fala": "Status atualizado com sucesso. Agora você está disponível para atender chamadas."
   },
   {
-    "id": "3.3",
+    "id": "6.5",
     "ator": "Gerente",
-    "fala": "Preciso atualizar meu status de disponibilidade."
+    "fala": "Recebi uma ligação. Preciso atender."
   },
   {
-    "id": "3.4",
+    "id": "6.6",
     "ator": "Sistema",
-    "fala": "Status atualizado para disponível. Apoio remoto ativado."
+    "fala": "Iniciando atendimento com segurança. Use o hardware para manter a privacidade."
   },
   {
-    "id": "3.5",
+    "id": "6.7",
     "ator": "Gerente",
-    "fala": "Chamadas precisam do meu atendimento."
+    "fala": "Estou aguardando a documentação do cliente."
   },
   {
-    "id": "3.6",
+    "id": "6.8",
     "ator": "Sistema",
-    "fala": "Encaminhando ligação. Ferramentas de segurança prontas para suporte."
+    "fala": "Documentação recebida e armazenada com segurança."
   },
   {
-    "id": "3.7",
+    "id": "6.9",
     "ator": "Gerente",
-    "fala": "Recebi documentação do cliente."
+    "fala": "Preciso alterar minha senha."
   },
   {
-    "id": "3.8",
+    "id": "6.10",
     "ator": "Sistema",
-    "fala": "Documentos anexados com segurança. Pronto para prosseguir."
-  },
-  {
-    "id": "3.9",
-    "ator": "Gerente",
-    "fala": "Quero alterar minha senha para reforçar a segurança."
-  },
-  {
-    "id": "3.10",
-    "ator": "Sistema",
-    "fala": "Senha alterada com sucesso. Segurança garantida pelas ferramentas integradas."
+    "fala": "Insira sua senha atual e configure uma nova para completar a alteração."
   },
   {
     "id": "7.1",
     "ator": "Narrador",
-    "fala": "Anjalina Matis embarca em uma viagem de três dias até o Brasil."
+    "fala": "Anjalina navega por três dias em direção ao Brasil."
   },
   {
     "id": "7.2",
     "ator": "Narrador",
-    "fala": "Ela desembarca e chega ao centro de acolhida em Atalaia, Alagoas."
+    "fala": "Ela chega ao centro de acolhida em Atalaia, Alagoas."
   },
   {
     "id": "7.3",
-    "ator": "Narrador",
-    "fala": "Anjalina é recebida por um atendente local que fala seu idioma."
+    "ator": "Atendente",
+    "fala": "Bem-vinda! Vou ajudar você em seu idioma."
   },
   {
     "id": "7.4",
     "ator": "Narrador",
-    "fala": "Ela é encaminhada para um terminal de autoatendimento."
+    "fala": "Anjalina é orientada a usar um terminal de autoatendimento."
   },
   {
     "id": "7.5",
     "ator": "Sistema",
-    "fala": "Por favor, realize a autenticação biométrica para prosseguir."
+    "fala": "Por favor, realize a coleta de sua biometria para comprovar sua identidade."
   },
   {
     "id": "7.6",
-    "ator": "Sistema",
-    "fala": "Estamos identificando suas necessidades através de inteligência artificial."
+    "ator": "IA",
+    "fala": "Identificamos suas demandas e estamos priorizando as mais urgentes."
   },
   {
     "id": "7.7",
     "ator": "Sistema",
-    "fala": "Você perdeu seu cartão? Caso sim, podemos emitir um novo para você."
+    "fala": "Você perdeu seu cartão? Confirme para que possamos emitir um novo."
   },
   {
     "id": "7.8",
-    "ator": "Sistema",
-    "fala": "Iniciando tradução simultânea para melhor compreensão."
+    "ator": "Anjalina",
+    "fala": "Sim, perdi meu cartão. Preciso de outro."
   },
   {
     "id": "7.9",
     "ator": "Sistema",
-    "fala": "Estamos verificando a disponibilidade de serviços automáticos, como consulta de saldo ou bloqueio de conta."
+    "fala": "Cartão gerado com sucesso. Ele será entregue a você em breve."
   },
   {
     "id": "7.10",
     "ator": "Sistema",
-    "fala": "Você deseja resolver automaticamente ou falar com um gerente?"
+    "fala": "Tradução ativada para garantir comunicação clara durante o atendimento."
   },
   {
     "id": "7.11",
     "ator": "Sistema",
-    "fala": "A atualização cadastral ou troca de senha está disponível neste momento."
+    "fala": "Agora estamos verificando os serviços automatizados disponíveis para você."
   },
   {
     "id": "7.12",
+    "ator": "Sistema",
+    "fala": "Os serviços disponíveis incluem: Atualização Cadastral, Disponibilidade dos Benefícios, Saldo, Bloqueio de Conta e Cartão."
+  },
+  {
+    "id": "7.13",
+    "ator": "Sistema",
+    "fala": "Você prefere resolver automaticamente ou falar com um gerente?"
+  },
+  {
+    "id": "7.14",
+    "ator": "Anjalina",
+    "fala": "Gostaria de atualizar meus dados cadastrais e trocar minha senha."
+  },
+  {
+    "id": "7.15",
     "ator": "Gerente",
-    "fala": "Estou aqui para ajudar. Com o apoio de IA na tradução, garantimos que tudo seja claro."
+    "fala": "Vamos resolver sua demanda. Estou aqui para ajudar, e você terá tradução em tempo real para facilitar nossa conversa."
   }
 ]

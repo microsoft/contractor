@@ -215,11 +215,11 @@ class AzureAISearchTool:
             for result in results:
                 try:
                     output.append({
-                        "file_name": getattr(result, "file_name", None),
-                        "page_number": getattr(result, "page_number", None),
-                        "topic": getattr(result, "topic", None),
-                        "language_concept": getattr(result, "language_concept", None),
-                        "snippet": (getattr(result, "chunk", "") or "")[:400]
+                        "file_name": result.get("file_name", None),
+                        "page_number": result.get("page_number", None),
+                        "topic": result.get("topic", None),
+                        "language_concept": result.get("language_concept", None),
+                        "snippet": (result.get("chunk", "") or "")[:400]
                     })
                 except Exception:  # pragma: no cover
                     continue
