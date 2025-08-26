@@ -10,10 +10,11 @@ from .statistical import StatisticalAnalysisPlugin
 from .compliance import TestContext, SendingPromptsStrategy, CrescendoStrategy
 
 
-_search_endpoint = os.getenv("AZURE_SEARCH_ENDPOINT", "") or os.getenv("AZURE_AI_SEARCH_SERVICE", "")
-_search_index = os.getenv("PDF_INDEX_NAME", "pdf-index-two") or os.getenv("AZURE_AI_INDEX", "")
-_search_key = os.getenv("AZURE_SEARCH_API_KEY", os.getenv("AZURE_SEARCH_KEY", os.getenv("AZURE_AI_SEARCH_KEY", "")))
+_search_endpoint = os.getenv("AZURE_SEARCH_ENDPOINT", "")
+_search_index = os.getenv("AZURE_AI_INDEX", "pdf-index")
+_search_key = os.getenv("AZURE_SEARCH_API_KEY", "")
 search_plugin = []
+
 try:
 	if _search_endpoint and _search_index and _search_key:
 		search_plugin = [AzureAISearchTool(_search_endpoint, _search_index, _search_key)]

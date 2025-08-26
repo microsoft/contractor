@@ -83,8 +83,9 @@ class AppConfig:
     azure_foundry_url: str
     embedding_model: str
     chat_deployment: str
-    pdf_index_name: str = "pdf-index-two"
+    pdf_index_name: str = "pdf-index"
     pdf_folder: str = ""
+    embedding_url: str = ""
     embedding_dimensions: int = 1024
 
     @staticmethod
@@ -96,9 +97,10 @@ class AppConfig:
             azure_foundry_url=os.getenv("AZURE_FOUNDRY_URL", ""),
             embedding_model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL", "text-embedding-3-large"),
             chat_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o-mini"),
-            pdf_index_name=os.getenv("PDF_INDEX_NAME", "pdf-index-two"),
+            pdf_index_name=os.getenv("PDF_INDEX_NAME", "pdf-index"),
             pdf_folder=os.getenv("PDF_FOLDER", "notebooks/data/translation"),
             embedding_dimensions=int(os.getenv("EMBED_DIM", "1024")),
+            embedding_url=os.getenv("AZURE_FOUNDRY_EMBEDDING_URL", ""),
         )
 
 
@@ -111,9 +113,9 @@ class EmbeddingService:
         self._config = config
         self._client: Optional[EmbeddingsClient] = None
         try:
-            if config.azure_foundry_url and config.azure_foundry_key:
+            if config.embedding_url and config.azure_foundry_key:
                 self._client = EmbeddingsClient(
-                    endpoint=config.azure_foundry_url,
+                    endpoint=config.embedding_url,
                     credential=AzureKeyCredential(config.azure_foundry_key),
                 )
         except (HttpResponseError, ValueError, OSError) as exc:  # pragma: no cover
@@ -151,12 +153,13 @@ class PDFReaderService:
         pages: List[str] = []
         with open(pdf_path, "rb") as handler:
             reader = PdfReader(handler)
-            for p in reader.pages:
-                try:
-                    pages.append(p.extract_text() or "")
-                except (ValueError, RuntimeError, OSError) as exc:  # pragma: no cover
-                    logger.warning("Falha extraindo página PDF %s: %s", pdf_path, exc)
-                    pages.append("")
+            if reader.pages:
+                for p in reader.pages:
+                    try:
+                        pages.append(p.extract_text() or "")
+                    except (ValueError, RuntimeError, OSError) as exc:  # pragma: no cover
+                        logger.warning("Falha extraindo página PDF %s: %s", pdf_path, exc)
+                        pages.append("")
         return pages
 
     def extract_full_text(self, pdf_path: str) -> str:
@@ -304,6 +307,7 @@ class SearchIndexService:
                 name="vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
                 searchable=True,
+                retrievable=True,
                 dimensions=self._config.embedding_dimensions,
                 vector_search_dimensions=self._config.embedding_dimensions,
                 vector_search_profile_name="underlyingHnswProfile",

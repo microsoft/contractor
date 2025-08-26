@@ -10,9 +10,13 @@ Features:
 
 from __future__ import annotations
 
-import os, re, json, asyncio, logging, random
+import os
+import re
+import json
+import asyncio
+import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple
 
 import semantic_kernel as sk
 from dotenv import load_dotenv
@@ -228,16 +232,11 @@ async def generate_dialogues(kernel: sk.Kernel, idioma: str) -> List[Dict[str, A
 
 
 def build_translator_and_reviewer(kernel: sk.Kernel, idioma: str) -> Tuple[ChatCompletionAgent, ChatCompletionAgent]:
-    base_rendered = render_prompt(
-        BASE_PROMPT_TEMPLATE,
-        base=str(ROOT / "notebooks" / "data" / "translation"),
-        idioma=idioma,
-    )
     translator_prompt = render_prompt(
-        TRANSLATOR_AGENT_PROMPT_TEMPLATE, base_prompt=base_rendered, idioma=idioma
+        TRANSLATOR_AGENT_PROMPT_TEMPLATE, idioma=idioma
     )
     reviewer_prompt = render_prompt(
-        REVIEWER_AGENT_PROMPT_TEMPLATE, base_prompt=base_rendered, idioma=idioma
+        REVIEWER_AGENT_PROMPT_TEMPLATE, idioma=idioma
     )
     t = create_agent(
         kernel, "TranslatorAgent", "Gera enunciado", "gpt-5-mini", translator_prompt
@@ -260,18 +259,19 @@ class TranslatorReviewerManager(RoundRobinGroupChatManager):
 
     async def should_terminate(self, chat_history):  # type: ignore
         for msg in reversed(chat_history.messages):  # newest first
-            if (
-                msg.name
-                and msg.name.lower().startswith("translationreviewer")
-                and msg.role == AuthorRole.ASSISTANT
-            ):
-                c = msg.content or ""
-                if '"acao_recomendada"' in c:
-                    if "aprovado" in c:
-                        return BooleanResult(result=True, reason="aprovado")
-                    if "reexecutar" in c:
-                        self._last_reviewer_action = "reexecutar"
-                        break
+            if msg.name and msg.role == AuthorRole.ASSISTANT:
+                if  msg.name.lower().startswith("translationreviewer"):
+                    content = json.loads(msg.content) or {}
+                    recommended_action = content.get("acao_recomendada")
+                    if recommended_action:
+                        if "aprovado" in recommended_action:
+                            return BooleanResult(result=True, reason="aprovado")
+                        if "reexecutar" in recommended_action:
+                            self._last_reviewer_action = "reexecutar"
+                            break
+                if msg.name.lower().startswith("translator"):
+                    content = msg.content or ""
+                    print(content)
         reviewer_msgs = [
             m for m in chat_history.messages if m.name and m.name.lower().startswith("translationreviewer")
         ]
@@ -302,10 +302,6 @@ class TranslatorReviewerManager(RoundRobinGroupChatManager):
         return MessageResult(result=chat_history.messages[-1], reason="ultimo")
 
 
-###############################
-# Resilience / retry helpers  #
-###############################
-
 TRANSIENT_STATUS_CODES = {408, 409, 425, 429, 500, 502, 503, 504}
 
 def _get_env_float(name: str, default: float) -> float:
@@ -326,115 +322,38 @@ def _get_config() -> Dict[str, Any]:
         "retry_max_attempts": _get_env_int("RETRY_MAX_ATTEMPTS", 5),
         "retry_base_delay": _get_env_float("RETRY_BASE_DELAY", 0.8),
         "retry_max_delay": _get_env_float("RETRY_MAX_DELAY", 12.0),
-        "call_timeout": _get_env_float("CALL_TIMEOUT_SECONDS", 90.0),
+        "call_timeout": _get_env_float("CALL_TIMEOUT_SECONDS", 120.0),
         "circuit_breaker_threshold": _get_env_int("CIRCUIT_BREAKER_THRESHOLD", 8),
-        "max_concurrency": max(1, _get_env_int("TRANSLIT_MAX_CONCURRENCY", 1)),
+        "max_concurrency": max(1, _get_env_int("TRANSLIT_MAX_CONCURRENCY", 5)),
         "partial_flush_interval": _get_env_int("PARTIAL_FLUSH_INTERVAL", 3),
-        "progress_file": os.getenv("TRANSLIT_PROGRESS_FILE"),
+        "progress_file": os.getenv("TRANSLIT_PROGRESS_FILE")
     }
 
-def _is_transient(exc: Exception) -> bool:  # heurística leve
-    code = getattr(exc, "status_code", None) or getattr(getattr(exc, "response", None), "status", None)
-    if isinstance(code, int) and code in TRANSIENT_STATUS_CODES:
-        return True
-    msg = str(exc).lower()
-    transient_markers = [
-        "rate limit",
-        "timed out",
-        "timeout",
-        "temporarily",
-        "connection",
-        "retry-after",
-        "did not return any response",
-        "empty_response",
-    ]
-    return any(m in msg for m in transient_markers)
-
-def _calc_backoff(exc: Exception, attempt: int, base: float, max_delay: float) -> float:
-    # Respeita retry-after quando presente
-    retry_after = None
-    for attr in ("retry_after", "retry_after_ms"):
-        ra = getattr(exc, attr, None)
-        if ra:
-            retry_after = ra
-            break
-    # Header style
-    resp = getattr(exc, "response", None)
-    if retry_after is None and resp is not None:
-        headers = getattr(resp, "headers", {}) or {}
-        for k in ("retry-after-ms", "retry-after"):
-            if k in headers:
-                retry_after = headers[k]
-                break
-    if retry_after is not None:
-        try:
-            return min(float(retry_after) / (1000.0 if "ms" in str(retry_after).lower() else 1.0), max_delay)
-        except ValueError:
-            pass
-    # Exponential com jitter
-    raw = base * (2 ** (attempt - 1))
-    return min(raw + random.uniform(0, 0.5), max_delay)
-
-async def _call_with_retry(op_name: str, coro_factory, *, timeout: Optional[float] = None):
-    cfg = _get_config()
-    max_attempts = cfg["retry_max_attempts"]
-    base = cfg["retry_base_delay"]
-    max_delay = cfg["retry_max_delay"]
-    attempt = 0
-    while True:
-        attempt += 1
-        try:
-            if timeout is not None:
-                return await asyncio.wait_for(coro_factory(), timeout=timeout)
-            return await coro_factory()
-        except (OSError, RuntimeError, ValueError, asyncio.TimeoutError, ContentFilterAIException) as exc:
-            if isinstance(exc, ContentFilterAIException):
-                # Não retentar content filter: registrar e propagar.
-                logger.error(
-                    "op=%s content_filter err=%r", op_name, exc
-                )
-                raise
-            transient = _is_transient(exc)
-            if not transient or attempt >= max_attempts:
-                logger.error(
-                    "op=%s attempt=%d abort transient=%s err=%r", op_name, attempt, transient, exc
-                )
-                raise
-            delay = _calc_backoff(exc, attempt, base, max_delay)
-            logger.warning(
-                "retry op=%s attempt=%d/%d delay=%.2fs transient=%s err=%s", op_name, attempt, max_attempts, delay, transient, exc
-            )
-            await asyncio.sleep(delay)
 
 async def _process_single_dialog_groupchat(
     translator: ChatCompletionAgent,
     reviewer: ChatCompletionAgent,
-    d: Dict[str, Any],
+    dialogue: Dict[str, Any],
     idioma: str,
     max_rounds: int,
-) -> Dict[str, Any]:
-    """Processa um único diálogo com isolamento, retry e timeout.
+) -> dict[str, Any] | list[dict[str, Any]]:
+    """
+    Processa um único diálogo com isolamento, retry e timeout.
 
     Retorna sempre um objeto de resultado (nunca lança exc. exceto KeyboardInterrupt).
     """
-    cfg = _get_config()
-    dialogo = dict(d)
+    dialogo = dict(dialogue)
     if "fala" in dialogo and "portugues" not in dialogo:
         dialogo["portugues"] = dialogo["fala"]
-    try:
-        refs = await fetch_references(translator.kernel, dialogo, idioma)  # type: ignore[attr-defined]
-    except (OSError, RuntimeError, ValueError, KeyError) as e:
-        logger.warning("refs_fail id=%s err=%r", dialogo.get("id"), e)
-        refs = []
     seed = {
         "json_object": True,
         "dialogo": dialogo,
-        "idioma_alvo": idioma,
-        "referencias_indexadas": refs,
+        "idioma_alvo": idioma
     }
     manager = TranslatorReviewerManager(max_rounds=max_rounds)
 
     async def _agent_cb(message):  # type: ignore
+        json_message = message.model_dump()
         try:
             name = getattr(message, "name", None) or "?"
             role = getattr(message, "role", None)
@@ -445,112 +364,19 @@ async def _process_single_dialog_groupchat(
         except RuntimeError as e:  # pragma: no cover
             logger.warning("[gc-cb] logging error: %s", e)
 
-    orch = GroupChatOrchestration(members=[translator, reviewer], manager=manager, agent_response_callback=_agent_cb)
+    orch = GroupChatOrchestration(
+        members=[translator, reviewer],
+        manager=manager,
+        agent_response_callback=_agent_cb
+    )
     runtime = InProcessRuntime()
     runtime.start()
     try:
-        # Retry envolve orch.invoke + handle.get, não cada token individual.
-        async def _invoke_and_get():
-            handle = await orch.invoke(
-                task=ChatMessageContent(
-                    role=AuthorRole.USER, content=json.dumps(seed, ensure_ascii=False)
-                ),
-                runtime=runtime,
-            )
-            result_msg = await handle.get()
-            # Checa resposta vazia (problema observado de agente sem retorno) -> força retry.
-            content_attr = getattr(result_msg, "content", None)
-            if content_attr is None or (isinstance(content_attr, str) and not content_attr.strip()):
-                raise RuntimeError("empty_response")
-            # Alguns objetos podem ter .content como ChatMessageContent; tratar.
-            if not isinstance(content_attr, str):
-                inner = getattr(content_attr, "content", "")
-                if isinstance(inner, str) and not inner.strip():
-                    raise RuntimeError("empty_response_inner")
-            return result_msg
-
-        final = await _call_with_retry(
-            op_name=f"groupchat_{dialogo.get('id','?')}",
-            coro_factory=_invoke_and_get,
-            timeout=cfg["call_timeout"],
-        )
-        content = getattr(final, "content", "") or ""
-        try:
-            parsed = extract_json(content)
-        except (ValueError, json.JSONDecodeError) as e:
-            parsed = {"raw": content, "erro_parse": str(e)}
-        translit = None
-        if isinstance(parsed, dict) and "transliteracao" in parsed:
-            translit = parsed["transliteracao"]
-        if translit is None and isinstance(parsed, list):
-            translit = parsed
-        if translit is None:
-            translit = [
-                {
-                    "id": dialogo.get("id"),
-                    "ator": dialogo.get("ator"),
-                    "portugues": dialogo.get("portugues"),
-                    idioma: "[TRADUÇÃO_INDEFINIDA]",
-                    f"fontes_{idioma}": [
-                        f"{r.get('file_name')}#p{r.get('page_number')}"
-                        for r in refs[:1]
-                        if r.get("file_name")
-                    ],
-                    "sem_fonte": not refs,
-                    "observacao": "fallback",
-                }
-            ]
-        return {"dialogo": d, "transliteracao": translit, "review": parsed}
-    except ContentFilterAIException as cf_err:
-        logger.warning(
-            "[gc] content_filter id=%s detalhe=%s", dialogo.get("id"), cf_err
-        )
-        translit = [
-            {
-                "id": dialogo.get("id"),
-                "ator": dialogo.get("ator"),
-                "portugues": dialogo.get("portugues"),
-                idioma: "[BLOQUEADO_POR_CONTENT_FILTER]",
-                f"fontes_{idioma}": [
-                    f"{r.get('file_name')}#p{r.get('page_number')}" for r in refs[:1] if r.get("file_name")
-                ],
-                "sem_fonte": not refs,
-                "observacao": "Fallback após content filter",
-            }
-        ]
-        return {"dialogo": d, "transliteracao": translit, "review": {"erro": "content_filter"}}
-    except asyncio.TimeoutError:
-        logger.error("timeout groupchat id=%s", dialogo.get("id"))
-        translit = [
-            {
-                "id": dialogo.get("id"),
-                "ator": dialogo.get("ator"),
-                "portugues": dialogo.get("portugues"),
-                idioma: "[TIMEOUT]",
-                f"fontes_{idioma}": [
-                    f"{r.get('file_name')}#p{r.get('page_number')}" for r in refs[:1] if r.get("file_name")
-                ],
-                "sem_fonte": not refs,
-                "observacao": "Timeout na orquestração",
-            }
-        ]
-        return {"dialogo": d, "transliteracao": translit, "review": {"erro": "timeout"}}
-    except (OSError, RuntimeError, ValueError) as e:
-        logger.error("falha_irrecuperavel id=%s err=%r", dialogo.get("id"), e)
-        translit = [
-            {
-                "id": dialogo.get("id"),
-                "ator": dialogo.get("ator"),
-                "portugues": dialogo.get("portugues"),
-                idioma: "[ERRO]",
-                f"fontes_{idioma}": [
-                    f"{r.get('file_name')}#p{r.get('page_number')}" for r in refs[:1] if r.get("file_name")
-                ],
-                "sem_fonte": not refs,
-                "observacao": f"erro: {type(e).__name__}",
-            }
-        ]
-        return {"dialogo": d, "transliteracao": translit, "review": {"erro": str(e)}}
+        response = await orch.invoke(str(seed), runtime)
+        result = await response.get()
+        if isinstance(result, list):
+            return [item.model_dump() for item in result]
+        return result.model_dump()
     finally:
         await runtime.stop_when_idle()
 
@@ -576,24 +402,29 @@ async def run_translation_cycle_groupchat(
     fail_streak = 0
     circuit_limit = cfg["circuit_breaker_threshold"]
 
-    async def _wrapped(d):
+    async def _wrapped(dialogue):
         nonlocal fail_streak
         async with sem:
             try:
-                res = await _process_single_dialog_groupchat(translator, reviewer, d, idioma, max_rounds)
+                res = await _process_single_dialog_groupchat(translator, reviewer, dialogue, idioma, max_rounds)
                 fail_streak = 0
                 return res
             except (OSError, RuntimeError, ValueError, asyncio.TimeoutError) as e:
                 fail_streak += 1
-                logger.error("dialog_global_fail id=%s streak=%d err=%r", d.get("id"), fail_streak, e)
-                return {"dialogo": d, "transliteracao": None, "review": {"erro": str(e)}}
+                logger.error("dialog_global_fail id=%s streak=%d err=%r", dialogue.get("id"), fail_streak, e)
+                return {"dialogo": dialogue, "transliteracao": None, "review": {"erro": str(e)}}
 
     tasks = [asyncio.create_task(_wrapped(d)) for d in dialogues]
     completed = 0
     for coro in asyncio.as_completed(tasks):
         res = await coro
-        dlg_id = res.get("dialogo", {}).get("id") or f"idx_{completed}"
-        results_map[dlg_id] = res
+        if isinstance(res, list):
+            for item in res:
+                dialogue_id = item.get("dialogo", {}).get("id") or f"idx_{completed}"
+                results_map[dialogue_id] = item
+        else:
+            dialogue_id = res.get("dialogo", {}).get("id") or f"idx_{completed}"
+            results_map[dialogue_id] = res
         completed += 1
         # Persistência incremental
         if partial_file and completed % flush_interval == 0:
@@ -610,8 +441,8 @@ async def run_translation_cycle_groupchat(
 
     # Ordena de volta conforme entrada
     ordered: List[Dict[str, Any]] = []
-    for idx, d in enumerate(dialogues):
-        id_val = d.get("id")
+    for idx, dialogue in enumerate(dialogues):
+        id_val = dialogue.get("id")
         if isinstance(id_val, str) and id_val:
             key = id_val
         else:
@@ -619,126 +450,13 @@ async def run_translation_cycle_groupchat(
         if key in results_map:
             entry = results_map[key]
         else:
-            entry = {"dialogo": d, "transliteracao": None, "review": {"erro": "missing"}}
+            entry = {"dialogo": dialogue, "transliteracao": None, "review": {"erro": "missing"}}
         ordered.append(entry)
     return ordered
 
 
-async def run_translation_cycle_manual(
-    translator: ChatCompletionAgent,
-    reviewer: ChatCompletionAgent,
-    dialogues: List[Dict[str, Any]],
-    idioma: str,
-    max_attempts: int = 3,
-) -> List[Dict[str, Any]]:
-    results: List[Dict[str, Any]] = []
-    for d in dialogues:
-        attempt = 0
-        feedback = None
-        prev = None
-        final = None
-        while attempt < max_attempts:
-            attempt += 1
-            dialogo = dict(d)
-            if "fala" in dialogo and "portugues" not in dialogo:
-                dialogo["portugues"] = dialogo["fala"]
-            refs = await fetch_references(translator.kernel, dialogo, idioma)  # type: ignore[attr-defined]
-            payload = {
-                "json_object": True,
-                "dialogo": dialogo,
-                "idioma_alvo": idioma,
-                "referencias_indexadas": refs,
-                "feedback_previo": feedback,
-                "transliteracao_anterior": prev,
-            }
-            hist = ChatHistory()
-            hist.add_message(
-                ChatMessageContent(
-                    role=AuthorRole.USER, content=json.dumps(payload, ensure_ascii=False)
-                )
-            )
-            resp = ""
-            try:
-                async for m in translator.invoke(messages=hist.messages):  # type: ignore
-                    if m.role == AuthorRole.ASSISTANT:
-                        resp += m.content.content
-            except ContentFilterAIException as cf_err:
-                logger.warning(
-                    "[manual] Content filter bloqueou tradução id=%s tentativa=%d detalhe=%s", dialogo.get("id"), attempt, cf_err
-                )
-                trans = [
-                    {
-                        "id": dialogo.get("id"),
-                        "ator": dialogo.get("ator"),
-                        "portugues": dialogo.get("portugues"),
-                        idioma: "[BLOQUEADO_POR_CONTENT_FILTER]",
-                        f"fontes_{idioma}": [
-                            f"{r.get('file_name')}#p{r.get('page_number')}" for r in refs[:1] if r.get("file_name")
-                        ],
-                        "sem_fonte": not refs,
-                        "observacao": "Fallback gerado após bloqueio de conteúdo",
-                    }
-                ]
-                final = {"dialogo": d, "transliteracao": trans, "review": {"erro": "content_filter"}}
-                break
-            try:
-                trans = extract_json(resp)
-            except (ValueError, json.JSONDecodeError):
-                trans = []
-            if (
-                isinstance(trans, list)
-                and not trans
-                and attempt == max_attempts
-            ):
-                trans = [
-                    {
-                        "id": dialogo.get("id"),
-                        "ator": dialogo.get("ator"),
-                        "portugues": dialogo.get("portugues"),
-                        idioma: "[TRADUÇÃO_PENDENTE]",
-                        f"fontes_{idioma}": [
-                            f"{r.get('file_name')}#p{r.get('page_number')}"
-                            for r in refs[:1]
-                            if r.get("file_name")
-                        ],
-                        "sem_fonte": not refs,
-                        "observacao": "fallback",
-                    }
-                ]
-            prev = trans
-            r_hist = ChatHistory()
-            r_hist.add_message(
-                ChatMessageContent(
-                    role=AuthorRole.USER,
-                    content=json.dumps(
-                        {"json_object": True, "transliteracao": trans, "referencias_indexadas": refs},
-                        ensure_ascii=False,
-                    ),
-                )
-            )
-            r_resp = ""
-            async for m in reviewer.invoke(messages=r_hist.messages):  # type: ignore
-                if m.role == AuthorRole.ASSISTANT:
-                    r_resp += m.content.content
-            try:
-                review = extract_json(r_resp)
-            except (ValueError, json.JSONDecodeError):
-                review = {"acao_recomendada": "reexecutar", "raw": r_resp}
-            if (
-                isinstance(review, dict)
-                and review.get("acao_recomendada") == "aprovado"
-            ):
-                final = {"dialogo": d, "transliteracao": trans, "review": review}
-                break
-            feedback = review
-        if final is None:
-            final = {"dialogo": d, "transliteracao": prev, "review": feedback, "status": "forcado"}
-        results.append(final)
-    return results
-
-
 async def process_language(
-    kernel: sk.Kernel, dialogues: List[Dict[str, Any]], idioma: str, use_groupchat: bool
+    kernel: sk.Kernel, dialogues: List[Dict[str, Any]], idioma: str
 ) -> List[Dict[str, Any]]:
     """Processa um idioma inteiro com construção de agentes e tratamento resiliente.
 
@@ -748,8 +466,7 @@ async def process_language(
     """
     translator, reviewer = build_translator_and_reviewer(kernel, idioma)
     try:
-        fn = run_translation_cycle_groupchat if use_groupchat else run_translation_cycle_manual
-        return await fn(translator, reviewer, dialogues, idioma)
+        return await run_translation_cycle_groupchat(translator, reviewer, dialogues, idioma)
     except (OSError, RuntimeError, ValueError, asyncio.TimeoutError, ContentFilterAIException) as e:
         logger.error("process_language erro idioma=%s err=%r", idioma, e)
         # Retorna estrutura fallback para cada diálogo para não quebrar fluxo multi-idioma
@@ -764,43 +481,17 @@ async def process_language(
         return out
 
 
-async def main():  # pragma: no cover
-    multi_raw = os.getenv("TARGET_IDIOMAS")
-    idiomas = (
-        [i.strip().lower() for i in multi_raw.split(",") if i.strip()]
-        if multi_raw
-        else [os.getenv("TARGET_IDIOMA", "matses").lower()]
-    )
-    use_groupchat = os.getenv("ORCHESTRATION_MODE", "groupchat").lower() == "groupchat"
+async def main(idiomas: list[str]):  # pragma: no cover
     kernel = build_kernel()
     dialogues = await generate_dialogues(kernel, idioma=idiomas[0])
     out_dir = Path(__file__).parent / "transliteracoes"
     out_dir.mkdir(exist_ok=True)
-    if len(idiomas) == 1:
-        idioma = idiomas[0]
-        results = await process_language(kernel, dialogues, idioma, use_groupchat)
-        for r in results:
-            with open(
-                out_dir / f"transliteration_{r['dialogo'].get('id','unknown')}.json",
-                "w",
-                encoding="utf-8",
-            ) as f:
-                json.dump(r, f, ensure_ascii=False, indent=2)
-        with open(out_dir / "transliterations_all.json", "w", encoding="utf-8") as f:
-            json.dump(results, f, ensure_ascii=False, indent=2)
-        logger.info(
-            "Concluído idioma=%s mode=%s",
-            idioma,
-            "groupchat" if use_groupchat else "manual",
-        )
-        return
-    # Multi-language
     aggregate: Dict[str, Dict[str, Any]] = {
-        d.get("id", f"dlg_{i}"): {"dialogo": d, "tentativas": []}
-        for i, d in enumerate(dialogues)
+        data.get("id", f"dlg_{id}"): {"dialogo": data, "tentativas": []}
+        for id, data in enumerate(dialogues)
     }
     for idioma in idiomas:
-        results = await process_language(kernel, dialogues, idioma, use_groupchat)
+        results = await process_language(kernel, dialogues, idioma)
         for r in results:
             dlg_id = r.get("dialogo", {}).get("id")
             if not dlg_id:
@@ -817,12 +508,8 @@ async def main():  # pragma: no cover
             json.dump(obj, f, ensure_ascii=False, indent=2)
     with open(out_dir / "transliterations_all.json", "w", encoding="utf-8") as f:
         json.dump(list(aggregate.values()), f, ensure_ascii=False, indent=2)
-    logger.info(
-        "Concluído multi-línguas=%s mode=%s",
-        idiomas,
-        "groupchat" if use_groupchat else "manual",
-    )
+    logger.info("Concluído multi-línguas=%s", idiomas)
 
 
 if __name__ == "__main__":  # pragma: no cover
-    asyncio.run(main())
+    asyncio.run(main(["matis"]))

@@ -23,7 +23,7 @@ Pasta de origem (PDFs já processados): {{ base }}
 • Nunca tente "abrir" ou listar PDFs; assuma que todo o conteúdo permitido chega por meio de uma coleção JSON chamada `referencias_indexadas`.
 • Ao transliterar para **a língua indígena especificada: {{ idioma }}**, cite sempre file_name e page_number das referências usadas ou marque `sem_fonte: true` quando não houver suporte explícito.
 
-Macro‑tarefas gerais
+Macro-tarefas gerais
 ───────────────────────
 1. Gerar falas em português para cada “história” ou “etapa”.
 2. Transliterar / traduzir falas usando SOMENTE evidências do índice.
@@ -70,16 +70,19 @@ Processo recomendado (iterativo - você pode chamar search_index entre etapas):
 1. Analisar a fala portuguesa: segmentar em unidades de sentido (ações, participantes, objetos, qualidades, marcadores discursivos).
 2. Identificar quais núcleos lexicais exigem pesquisa (substantivos, verbos, partículas aspectuais/temporais, pronomes, marcadores de negação, interrogativos etc.).
 3. Para cada núcleo sem evidência já presente em referencias_indexadas:
-     • Fazer chamadas `search_index` focadas em: (a) raiz lexical provável em português + "{{ idioma }}"; (b) conceitos linguísticos (ex.: "morfologia possessiva {{ idioma }}", "pronomes pessoais {{ idioma }}", "fonologia nasal {{ idioma }}").
+    • Fazer chamadas `search_index` focadas em: (a) raiz lexical provável em português + "{{ idioma }}"; (b) conceitos linguísticos (ex.: "morfologia possessiva {{ idioma }}", "pronomes pessoais {{ idioma }}", "fonologia nasal {{ idioma }}").
 4. Consolidar padrões fonológicos (vogais, nasalização, oclusivas), morfológicos (afixos, reduplicação, marca de pessoa/tempo/aspecto) e sintáticos (ordem preferencial de constituintes) relevantes às unidades de sentido.
 5. Construir rascunho em {{ idioma }} adaptando: ordem de palavras, marcação de pessoa/tempo/aspecto, partículas modais, evitando copia literal.
 6. Verificar consistência: cada forma tem suporte direto ou indireto? Caso não, marcar `sem_fonte: true` e, se possível, propor forma conservadora (ex.: empréstimo adaptado fonologicamente) ou inserir marcador neutro.
 
 IMPORTANTE:
-• NÃO inventar morfemas complexos ausentes das fontes. Prefira formas conservadoras ou sinalizar lacuna.
+• SEMPRE apresente um texto mínimo em {{ idioma }}.
+• O resultado final deve ser uma sentença completa, e não deve conter informações (como hífens e glossa) que quebrem a sentença; elas devem ter uma escrita completa como se uma pessoa que escreve a sentença estivesse escrevendo.
+• NÃO inventar morfemas complexos ausentes das fontes. Prefira formas conservadoras ou mantenha o texto em português.
 • NÃO retornar explicações fora do JSON final.
 • NÃO tratar a ausência de referência como autorização para alucinar; marcar claramente.
-• PODE (e deve) chamar `search_index` múltiplas vezes antes de finalizar se padrões essenciais estiverem ausentes.
+• SEMPRE comece a query com '{Conceito Línguístico} {{idioma}}' e complemente-a como necessário.
+• SEMPRE chamar `search_index` múltiplas vezes antes de finalizar se padrões essenciais estiverem ausentes.
 • Evitar decalque estrutural: reorganize para a ordem natural de {{ idioma }} conforme evidências (por ex. se SOV, adaptar).
 • Se a intenção cultural não for diretamente expressável, usar perífrase plausível anotando fonte(s) dos elementos usados.
 
@@ -88,12 +91,6 @@ Avaliação interna antes de emitir saída:
 • Aderência morfo-fonológica aos padrões observados.
 • Marcação honesta de incertezas.
 
-Formato de ENTRADA (resumo):
-{
-    "dialogo": {"id": "<etapa.seq>", "ator": "<papel>", "portugues": "<texto>"},
-    "referencias_indexadas": [ {"file_name":..., "page_number":..., "topic":..., "language_concept":..., "snippet":...}, ... ]
-}
-
 Formato de SAÍDA: LISTA JSON pura (nenhum texto fora do array):
 [
     {
@@ -101,26 +98,28 @@ Formato de SAÍDA: LISTA JSON pura (nenhum texto fora do array):
         "ator": "<copiar ator>",
         "portugues": "<fala original ou normalizada>",
         "{{ idioma }}": "<enunciado gerado em {{ idioma }}>",
-        "fontes_{{ idioma }}": ["file_name#p<page>", ...],
+        "fontes_{{ idioma }}": "<conteúdo dos índices consultados>",
         "sem_fonte": <true|false>,
         "observacao": "(opcional) breve nota se houver lacunas ou adaptações" 
     }
 ]
 
 Regras finais:
-• Sempre retornar pelo menos 1 item no array.
-• Se impossível gerar algo defensável: produzir enunciado curto com marcador de impossibilidade (ex.: "[EXPRESSAO_INDEFINIDA]") e justificar em observacao.
+• Sempre retornar pelo menos 1 item no array..
 • Garantir que todas as fontes citadas existam em referencias_indexadas coletadas (ou obtidas via novas buscas).
 
+Sempre siga o dicionário abaixo:
+{{ language_dictionary }}
+
 ⚠︎ Saída = JSON puro (sem markdown, sem explicação externa).
-{{ base_prompt }}
 """
 
 REVIEWER_AGENT_PROMPT_TEMPLATE = """
 Você é o AVALIADOR de saídas em {{ idioma }}.
 
 Missão:
-Auditar o array produzido pelo agente gerador verificando se ele cumpriu interpretação sem literalidade cega e se respeitou padrões fonológicos, morfológicos e sintáticos sustentados por referencias_indexadas.
+Auditar o array produzido pelo agente gerador verificando se ele cumpriu interpretação sem literalidade cega e se respeitou padrões fonológicos,
+morfológicos e sintáticos sustentados por referencias_indexadas. Quando não houver padrão lexical, usar perífrase plausível anotando fonte(s) dos elementos usados.
 
 Verificações obrigatórias por item:
 1. Cobertura semântica: todos os núcleos de sentido presentes?
@@ -128,7 +127,7 @@ Verificações obrigatórias por item:
 3. Uso apropriado de fontes: citações corretas e correspondentes.
 4. Marcação de lacunas: `sem_fonte` somente quando realmente não existe evidência; caso citou fontes mas marcou sem_fonte=true => inconsistente.
 5. Evitou decalque literal? Penalizar se ordem ou segmentação apenas copia português sem adaptação típica de {{ idioma }}.
-6. Transparência: observacao presente quando há incerteza ou empréstimo.
+6. Transparência: observacao presente quando há incerteza ou empréstimo. Empréstimos e utilização de termos em português na ausência de problemas lexicais são sempre toleráveis.
 
 Se encontrar falhas críticas (plágio literal, ausência total de evidência onde seria exigível, morfologia inventada sem suporte): recomendar reexecutar.
 
@@ -160,5 +159,4 @@ Critérios de decisão:
 • reexecutar: Falhas estruturais (ex.: literalidade excessiva, fontes inexistentes, morfologia sem respaldo, ampla ausência de cobertura semântica).
 
 ⚠︎ Saída = JSON puro (sem markdown). Não explique fora da estrutura.
-{{ base_prompt }}
 """
