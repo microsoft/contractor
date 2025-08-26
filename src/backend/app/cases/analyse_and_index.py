@@ -45,6 +45,8 @@ from azure.search.documents.indexes.models import (
     SemanticSearch,
     SemanticPrioritizedFields,
     SemanticField,
+    AzureOpenAIVectorizer,
+    AzureOpenAIVectorizerParameters,
 )
 from azure.ai.inference import EmbeddingsClient
 from azure.core.exceptions import HttpResponseError
@@ -57,6 +59,7 @@ logging.basicConfig(level=logging.INFO)
 # --------------------------------------------------------------------------------------
 # Util
 # --------------------------------------------------------------------------------------
+
 
 def _short_id() -> str:
     return uuid.uuid4().hex[:8]
@@ -75,6 +78,7 @@ def _timed(stage: str, collector: Dict[str, float]):
 # Config
 # --------------------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class AppConfig:
     search_service_endpoint: str
@@ -87,6 +91,10 @@ class AppConfig:
     pdf_folder: str = ""
     embedding_url: str = ""
     embedding_dimensions: int = 1024
+    embedding_endpoint: str = ""
+    embedding_vectorizer_deployment: str = ""
+    embedding_vectorizer_model: str = ""
+    embedding_vectorizer_endpoint: str = ""
 
     @staticmethod
     def from_env() -> "AppConfig":
@@ -95,12 +103,15 @@ class AppConfig:
             search_service_key=os.getenv("AZURE_SEARCH_API_KEY", ""),
             azure_foundry_key=os.getenv("AZURE_FOUNDRY_KEY", ""),
             azure_foundry_url=os.getenv("AZURE_FOUNDRY_URL", ""),
-            embedding_model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL", "text-embedding-3-large"),
-            chat_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o-mini"),
-            pdf_index_name=os.getenv("PDF_INDEX_NAME", "pdf-index"),
-            pdf_folder=os.getenv("PDF_FOLDER", "notebooks/data/translation"),
+            embedding_model=os.getenv("AZURE_OPENAI_EMBEDDING_MODEL", ""),
+            chat_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT", ""),
+            pdf_index_name=os.getenv("PDF_INDEX_NAME", "pdf-index-v2"),
+            pdf_folder=os.getenv("PDF_FOLDER", ""),
             embedding_dimensions=int(os.getenv("EMBED_DIM", "1024")),
-            embedding_url=os.getenv("AZURE_FOUNDRY_EMBEDDING_URL", ""),
+            embedding_endpoint=os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT", ""),
+            embedding_vectorizer_deployment=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_DEPLOYMENT", ""),
+            embedding_vectorizer_model=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_MODEL", ""),
+            embedding_vectorizer_endpoint=os.getenv("AZURE_OPENAI_EMBEDDING_VECTORIZER_ENDPOINT", ""),
         )
 
 
@@ -108,14 +119,15 @@ class AppConfig:
 # Embedding Service
 # --------------------------------------------------------------------------------------
 
+
 class EmbeddingService:
     def __init__(self, config: AppConfig):
         self._config = config
         self._client: Optional[EmbeddingsClient] = None
         try:
-            if config.embedding_url and config.azure_foundry_key:
+            if config.embedding_endpoint and config.azure_foundry_key:
                 self._client = EmbeddingsClient(
-                    endpoint=config.embedding_url,
+                    endpoint=config.embedding_endpoint,
                     credential=AzureKeyCredential(config.azure_foundry_key),
                 )
         except (HttpResponseError, ValueError, OSError) as exc:  # pragma: no cover
@@ -147,6 +159,7 @@ class EmbeddingService:
 # --------------------------------------------------------------------------------------
 # PDF Reading & Chunking
 # --------------------------------------------------------------------------------------
+
 
 class PDFReaderService:
     def read_pages(self, pdf_path: str) -> List[str]:
@@ -180,24 +193,28 @@ class SlidingWindowChunker:
         if self.overlapping:
             for i in range(0, n - w + 1):
                 group = pages[i : i + w]
-                res.append({
-                    "chunk_id": _short_id(),
-                    "start_page": i + 1,
-                    "end_page": i + w,
-                    "raw": "\n".join(group),
-                })
+                res.append(
+                    {
+                        "chunk_id": _short_id(),
+                        "start_page": i + 1,
+                        "end_page": i + w,
+                        "raw": "\n".join(group),
+                    }
+                )
         else:
             page_index = 0
             while page_index < n:
                 group = pages[page_index : page_index + w]
                 start = page_index + 1
                 end = start + len(group) - 1
-                res.append({
-                    "chunk_id": _short_id(),
-                    "start_page": start,
-                    "end_page": end,
-                    "raw": "\n".join(group),
-                })
+                res.append(
+                    {
+                        "chunk_id": _short_id(),
+                        "start_page": start,
+                        "end_page": end,
+                        "raw": "\n".join(group),
+                    }
+                )
                 page_index += w
         return res
 
@@ -278,30 +295,77 @@ class ChunkAnnotator:
 # Azure Search
 # --------------------------------------------------------------------------------------
 
+
 class SearchIndexService:
     def __init__(self, config: AppConfig):
         self._config = config
-        self._cred = AzureKeyCredential(config.search_service_key) if config.search_service_key else None
+        self._cred = (
+            AzureKeyCredential(config.search_service_key) if config.search_service_key else None
+        )
 
     def _index_client(self) -> SearchIndexClient:
         if not self._cred:
             raise RuntimeError("Credencial de busca ausente")
-        return SearchIndexClient(endpoint=self._config.search_service_endpoint, credential=self._cred)
+        return SearchIndexClient(
+            endpoint=self._config.search_service_endpoint, credential=self._cred
+        )
 
     def _search_client(self, index_name: str) -> SearchClient:
         if not self._cred:
             raise RuntimeError("Credencial de busca ausente")
-        return SearchClient(endpoint=self._config.search_service_endpoint, index_name=index_name, credential=self._cred)
+        return SearchClient(
+            endpoint=self._config.search_service_endpoint,
+            index_name=index_name,
+            credential=self._cred,
+        )
 
     def create_or_update_index(self, index_name: str) -> None:
         client = self._index_client()
         fields = [
             SearchField(name="chunk_id", type=SearchFieldDataType.String, key=True),
-            SearchField(name="file_name", type=SearchFieldDataType.String, filterable=True, searchable=True, sortable=True, facetable=True, retrievable=True),
-            SearchField(name="page_number", type=SearchFieldDataType.String, filterable=True, sortable=True, retrievable=True, facetable=False),
-            SearchField(name="chunk", type=SearchFieldDataType.String, searchable=True, retrievable=True, filterable=False, sortable=False, facetable=False),
-            SearchField(name="language_concept", type=SearchFieldDataType.String, filterable=True, facetable=True, sortable=True, retrievable=True),
-            SearchField(name="topic", type=SearchFieldDataType.String, searchable=True, filterable=True, sortable=True, facetable=True, retrievable=True),
+            SearchField(
+                name="file_name",
+                type=SearchFieldDataType.String,
+                filterable=True,
+                searchable=True,
+                sortable=True,
+                facetable=True,
+                retrievable=True,
+            ),
+            SearchField(
+                name="page_number",
+                type=SearchFieldDataType.String,
+                filterable=True,
+                sortable=True,
+                retrievable=True,
+                facetable=False,
+            ),
+            SearchField(
+                name="chunk",
+                type=SearchFieldDataType.String,
+                searchable=True,
+                retrievable=True,
+                filterable=False,
+                sortable=False,
+                facetable=False,
+            ),
+            SearchField(
+                name="language_concept",
+                type=SearchFieldDataType.String,
+                filterable=True,
+                facetable=True,
+                sortable=True,
+                retrievable=True,
+            ),
+            SearchField(
+                name="topic",
+                type=SearchFieldDataType.String,
+                searchable=True,
+                filterable=True,
+                sortable=True,
+                facetable=True,
+                retrievable=True,
+            ),
             # Campo vetorial: Azure Search exige searchable=True para campos de vetor
             SearchField(
                 name="vector",
@@ -316,15 +380,38 @@ class SearchIndexService:
         # Configuração de busca vetorial (perfil HNSW)
         vector_search = VectorSearch(
             algorithms=[HnswAlgorithmConfiguration(name="underlyingHnsw")],
-            profiles=[VectorSearchProfile(name="underlyingHnswProfile", algorithm_configuration_name="underlyingHnsw")],
+            profiles=[
+                VectorSearchProfile(
+                    name="underlyingHnswProfile", algorithm_configuration_name="underlyingHnsw"
+                )
+            ],
+            vectorizers=[
+                AzureOpenAIVectorizer(
+                    vectorizer_name="myVectorizer",
+                    parameters=AzureOpenAIVectorizerParameters(
+                        resource_url=self._config.embedding_vectorizer_endpoint,
+                        model_name=self._config.embedding_vectorizer_model,
+                        deployment_name=self._config.embedding_vectorizer_deployment,
+                        api_key=self._config.azure_foundry_key,
+                    ),
+                )
+            ],
         )
-        semantic = SemanticSearch(configurations=[
-            SemanticConfiguration(
-                name="my-semantic-config",
-                prioritized_fields=SemanticPrioritizedFields(content_fields=[SemanticField(field_name="chunk")], title_field=None, keywords_fields=[]),
-            )
-        ])
-        index = SearchIndex(name=index_name, fields=fields, vector_search=vector_search, semantic_search=semantic)
+        semantic = SemanticSearch(
+            configurations=[
+                SemanticConfiguration(
+                    name="my-semantic-config",
+                    prioritized_fields=SemanticPrioritizedFields(
+                        content_fields=[SemanticField(field_name="chunk")],
+                        title_field=None,
+                        keywords_fields=[],
+                    ),
+                )
+            ]
+        )
+        index = SearchIndex(
+            name=index_name, fields=fields, vector_search=vector_search, semantic_search=semantic
+        )
         try:
             client.create_or_update_index(index)
             logger.info("Índice '%s' criado/atualizado", index_name)
@@ -351,6 +438,7 @@ class SearchIndexService:
 # Document Indexer
 # --------------------------------------------------------------------------------------
 
+
 class DocumentIndexer:
     def __init__(
         self,
@@ -368,7 +456,9 @@ class DocumentIndexer:
         self._search = search_service
         self._annotator = annotator
 
-    async def _annotate_chunks(self, chunks: List[Dict[str, Any]], concurrency: int = 5) -> List[Dict[str, Any]]:
+    async def _annotate_chunks(
+        self, chunks: List[Dict[str, Any]], concurrency: int = 5
+    ) -> List[Dict[str, Any]]:
         sem = asyncio.Semaphore(concurrency)
         results: List[Optional[Dict[str, Any]]] = [None] * len(chunks)
 
@@ -393,15 +483,17 @@ class DocumentIndexer:
     def _prepare_docs(self, annotations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         docs: List[Dict[str, Any]] = []
         for a in annotations:
-            docs.append({
-                "chunk_id": a["chunk_id"],
-                "file_name": a.get("file_name"),
-                "page_number": a.get("page_number"),
-                "chunk": a.get("chunk_clean"),
-                "language_concept": a.get("language_concept"),
-                "topic": a.get("topic"),
-                "vector": a.get("vector", []),
-            })
+            docs.append(
+                {
+                    "chunk_id": a["chunk_id"],
+                    "file_name": a.get("file_name"),
+                    "page_number": a.get("page_number"),
+                    "chunk": a.get("chunk_clean"),
+                    "language_concept": a.get("language_concept"),
+                    "topic": a.get("topic"),
+                    "vector": a.get("vector", []),
+                }
+            )
         return docs
 
     async def index_pdf(self, pdf_path: str, index_name: Optional[str] = None) -> Dict[str, Any]:
@@ -422,7 +514,9 @@ class DocumentIndexer:
             "indexed": succeeded,
         }
 
-    async def index_folder(self, folder: str, pattern: str = "*.pdf", max_pdf_concurrency: int = 2) -> List[Dict[str, Any]]:
+    async def index_folder(
+        self, folder: str, pattern: str = "*.pdf", max_pdf_concurrency: int = 2
+    ) -> List[Dict[str, Any]]:
         pdf_files = sorted(glob.glob(os.path.join(folder, pattern)))
         if not pdf_files:
             logger.warning("Nenhum PDF encontrado em %s", folder)
@@ -446,19 +540,51 @@ class DocumentIndexer:
 # Script Entrypoint
 # --------------------------------------------------------------------------------------
 
+
 async def _main() -> None:  # pragma: no cover
+    # Setup file logging to save logs locally
+    file_handler = logging.FileHandler("app.log", mode="a")
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    logger.info("Loading configuration from environment")
     config = AppConfig.from_env()
     if not config.pdf_folder:
+        logger.error("PDF_FOLDER is not defined in the .env file")
         raise SystemExit("Defina PDF_FOLDER no .env para executar.")
+
+    logger.info("Initializing PDFReaderService")
     pdf_reader = PDFReaderService()
+
+    logger.info("Initializing SlidingWindowChunker")
     chunker = SlidingWindowChunker(window_size=3, overlapping=False)
+
+    logger.info("Initializing EmbeddingService")
     embedding = EmbeddingService(config)
+
+    logger.info("Initializing SearchIndexService")
     search = SearchIndexService(config)
+
+    logger.info("Initializing ChunkAnnotator")
     annotator = ChunkAnnotator(config)
+
+    logger.info("Creating or updating Azure Search index '%s'", config.pdf_index_name)
     search.create_or_update_index(config.pdf_index_name)
+
+    logger.info("Initializing DocumentIndexer")
     indexer = DocumentIndexer(config, pdf_reader, chunker, embedding, search, annotator)
+
+    logger.info("Starting indexing folder %s", config.pdf_folder)
     results = await indexer.index_folder(config.pdf_folder)
-    logger.info("Resumo: %s", results)
+
+    logger.info("Indexing process completed. Resumo: %s", results)
+    # Ensure all logging messages are flushed and file handlers are closed
+    for handler in logger.handlers:
+        handler.flush()
+        handler.close()
+    logging.shutdown()
 
 
 if __name__ == "__main__":  # pragma: no cover
